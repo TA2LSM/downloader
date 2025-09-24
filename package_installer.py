@@ -1,11 +1,6 @@
 import os, re, requests, platform
-from defaults import DEBUG, IS_WINDOWS, IS_LINUX, IS_MAC
 
-# API'ler
-CHROMIUM_API_VERSIONS = "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json"
-CHROMIUM_API_WITH_DOWNLOADS = "https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json"
-CHROMEDRIVER_STORAGE = "https://chromedriver.storage.googleapis.com"
-
+from defaults import DEBUG, IS_WINDOWS, IS_LINUX, IS_MAC, CHROMIUM_DIR, DRIVER_DIR, CHROMIUM_API_VERSIONS, CHROMIUM_API_WITH_DOWNLOADS, CHROMEDRIVER_STORAGE
 HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"}
 
 # -------------------------
@@ -285,3 +280,35 @@ def find_chromedriver_binary(driver_dir):
         if exe_name in files:
             return os.path.join(root, exe_name)
     return None
+
+def install_chromium_and_driver(chromium_url, driver_url):
+    """Hem Chromium hem Driver indirip dist altına kurar."""
+    os.makedirs(CHROMIUM_DIR, exist_ok=True)
+    os.makedirs(DRIVER_DIR, exist_ok=True)
+
+    # --- Driver ---
+    chromedriver_path = find_chromedriver_binary(DRIVER_DIR)
+    if chromedriver_path:
+        if DEBUG: print(f"[i] ChromeDriver zaten kurulu: {chromedriver_path}")
+    else:
+        driver_zip = os.path.join(DRIVER_DIR, "chromedriver.zip")
+        if download_file(driver_url, driver_zip):
+            extract_archive(driver_zip, DRIVER_DIR)
+            if os.path.exists(driver_zip):
+                os.remove(driver_zip)
+        chromedriver_path = find_chromedriver_binary(DRIVER_DIR)
+
+    # --- Chromium ---
+    chromium_path = find_chromium_binary(CHROMIUM_DIR)
+    if chromium_path:
+        if DEBUG: print(f"[i] Chromium zaten kurulu: {chromium_path}")
+    else:
+        chromium_pkg = os.path.join(CHROMIUM_DIR, os.path.basename(chromium_url))
+        if download_file(chromium_url, chromium_pkg):
+            extract_archive(chromium_pkg, CHROMIUM_DIR)
+            if os.path.exists(chromium_pkg):
+                os.remove(chromium_pkg)
+        chromium_path = find_chromium_binary(CHROMIUM_DIR)
+
+    print("[i] Chromium ve ChromeDriver dist/ altına kuruldu.")
+    return chromium_path, chromedriver_path
