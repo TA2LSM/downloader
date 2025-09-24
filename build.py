@@ -6,7 +6,6 @@ import subprocess
 # ----------------------------
 # Proje ayarları
 # ----------------------------
-
 VENV_DIR = os.path.join(os.getcwd(), "venv")  # proje dizini içinde venv
 REQ_FILE = os.path.join(os.getcwd(), "requirements.txt")
 MAIN_FILE = os.path.join(os.getcwd(), "main.py") # PyInstaller giriş noktası

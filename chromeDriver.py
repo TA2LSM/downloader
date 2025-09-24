@@ -1,11 +1,25 @@
 import os, shutil, zipfile, requests, platform
 from defaults import DEBUG, CHROMEDRIVER_BASE, DEFAULT_CHUNK_SIZE, DEFAULT_CHROME_DRIVER_MIN_SIZE
 
-def get_latest_driver_version():
-    """En güncel ChromeDriver sürümünü döndürür."""
-    url = f"{CHROMEDRIVER_BASE}/LATEST_RELEASE"
-    return requests.get(url, timeout=5).text.strip()
+# -------------------------------------------------------------
+# def get_latest_driver_version():
+#     """En güncel ChromeDriver sürümünü döndürür."""
+#     url = f"{CHROMEDRIVER_BASE}/LATEST_RELEASE"
+#     return requests.get(url, timeout=5).text.strip()
 
+def get_latest_driver_version():
+    # En güncel driver sürümü (fallback)
+    try:
+        url = "https://chromedriver.storage.googleapis.com/LATEST_RELEASE"
+        resp = requests.get(url, timeout=5)
+        if resp.status_code == 200:
+            return resp.text.strip()
+    except Exception as e:
+        if DEBUG:
+            print(f"[DEBUG] Latest driver sürümü alınamadı: {e}")
+    return None
+
+# -------------------------------------------------------------
 # def build_driver_url(version: str, system: str, machine: str) -> str:
 #     """ChromeDriver indirme URL'si oluşturur."""
 #     if system == "Windows":
@@ -20,20 +34,34 @@ def get_latest_driver_version():
 #         suffix = "win32.zip"
 #     return f"{CHROMEDRIVER_BASE}/{version}/chromedriver_{suffix}"
 
-def build_driver_url(version, system, machine):
-    """
-    Chromium sürümüne göre ChromeDriver URL'sini üretir.
-    """
-    if system == "Windows":
-        plat = "win64"
-    elif system == "Darwin":
-        plat = "mac64" if machine != "arm64" else "mac64"  # fallback: ARM Mac için x64 kullan
-    elif system == "Linux":
-        plat = "linux64"
-    else:
-        plat = "win64"
-    return f"https://chromedriver.storage.googleapis.com/{version}/chromedriver_{plat}.zip"
+# def build_driver_url(version, system, machine):
+#     """
+#     Chromium sürümüne göre ChromeDriver URL'sini üretir.
+#     """
+#     if system == "Windows":
+#         plat = "win64"
+#     elif system == "Darwin":
+#         plat = "mac64" if machine != "arm64" else "mac64"  # fallback: ARM Mac için x64 kullan
+#     elif system == "Linux":
+#         plat = "linux64"
+#     else:
+#         plat = "win64"
+#     return f"https://chromedriver.storage.googleapis.com/{version}/chromedriver_{plat}.zip"
 
+def build_driver_url(version, system, machine):
+    # ARM Mac için x64 kullan
+    if system == "Darwin" and machine in ["arm64", "aarch64"]:
+        platform_name = "mac64"
+    elif system == "Darwin":
+        platform_name = "mac64"
+    elif system == "Windows":
+        platform_name = "win32"
+    else:
+        platform_name = "linux64"
+    return f"https://chromedriver.storage.googleapis.com/{version}/chromedriver_{platform_name}.zip"
+
+
+# -------------------------------------------------------------
 # https://chromedriver.storage.googleapis.com/index.html
 # def get_latest_chromedriver_info():
 #     """
@@ -110,7 +138,7 @@ def build_driver_url(version, system, machine):
 #         print(f"[!] Stable ChromeDriver bilgisi alınamadı: {e}")
 #         return None, None
 
-
+# -------------------------------------------------------------
 def get_latest_chromedriver_info():
     """
     En güncel stable ChromeDriver bilgilerini döndürür.
@@ -174,7 +202,7 @@ def get_latest_chromedriver_info():
         print(f"[!] Stable ChromeDriver bilgisi alınamadı: {e}")
         return None, None
 
-
+# -------------------------------------------------------------
 # def get_chromedriver_for_chromium(chromium_version):
 #     """
 #     Chromium sürümüne uygun ChromeDriver sürümünü bulur.
@@ -224,7 +252,6 @@ def get_latest_chromedriver_info():
 
 #     return driver_version, driver_download_url
 
-
 def get_chromedriver_for_chromium(chromium_version: str):
     """
     Belirtilen Chromium sürümüne karşılık gelen ChromeDriver URL'sini döndürür.
@@ -266,7 +293,7 @@ def get_chromedriver_for_chromium(chromium_version: str):
         print(f"[!] ChromeDriver sürümü alınamadı: {e}")
         return None, None
 
-
+# -------------------------------------------------------------
 def get_compatible_chromedriver_url(chromium_version):
     """
     Chromium sürümüne uygun ChromeDriver zip URL'sini döndürür.
@@ -297,7 +324,7 @@ def get_compatible_chromedriver_url(chromium_version):
         print(f"[!] ChromeDriver URL alınamadı: {e}")
         return None
 
-
+# -------------------------------------------------------------
 def download_chromedriver():
     print("[+] Chrome Driver kontrol ediliyor...")
     zip_path = os.path.join(os.getcwd(), "chromedriver.zip")

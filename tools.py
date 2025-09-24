@@ -1,6 +1,6 @@
 import os, requests, zipfile
 
-
+# -------------------------------------------------------------
 def download_file(url, filename, min_size=1024):
     """
     Belirtilen URL'den dosyayı indirir.
@@ -33,7 +33,7 @@ def download_file(url, filename, min_size=1024):
         print(f"[!] İndirme hatası: {e}")
         return False
 
-
+# -------------------------------------------------------------
 def unzip(zip_path, extract_to):
     """
     Zip dosyasını extract_to klasörüne açar.
@@ -52,7 +52,7 @@ def unzip(zip_path, extract_to):
         print(f"[!] Zip açma hatası: {e}")
         return False
 
-
+# -------------------------------------------------------------
 def extract_archive(archive_path, extract_to):
     """Zip veya tar.xz arşivlerini açar."""
     try:
