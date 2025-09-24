@@ -28,3 +28,12 @@ chmod +x download
 
 * For executing
 - macOS    : go to dist folder and execute ./main 
+
+* Enable Virtual Environment
+this may need to test some modules by itselves. Without build some libraries may not be installed in the venv.
+
+source venv/bin/activate
+
+Upgrade pip and install dependencies:
+pip install --upgrade pip
+pip install requests selenium

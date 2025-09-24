@@ -1,14 +1,92 @@
 import os, shutil, zipfile, requests, platform
-from defaults import DEFAULT_CHUNK_SIZE, DEFAULT_CHROME_DRIVER_MIN_SIZE
+from defaults import DEBUG, CHROME_DRIVER_URL, DEFAULT_CHUNK_SIZE, DEFAULT_CHROME_DRIVER_MIN_SIZE
+
+# https://chromedriver.storage.googleapis.com/index.html
+# def get_latest_chromedriver_info():
+#     """
+#     API'den en güncel stable ChromeDriver bilgilerini döndürür.
+#     ARM Mac için x64 fallback uygulanır.
+#     """
+#     try:
+#         current_system = platform.system()
+#         machine = platform.machine()
+
+#         # Platform ismini belirle
+#         if current_system == "Windows":
+#             platform_name = "win64"
+#             fallback_name = None
+#         elif current_system == "Darwin":
+#             if machine in ["arm64", "aarch64"]:
+#                 platform_name = "mac-arm64"
+#                 fallback_name = "mac-x64"  # ARM Mac fallback
+#             else:
+#                 platform_name = "mac-x64"
+#                 fallback_name = None
+#         elif current_system == "Linux":
+#             platform_name = "linux64"
+#             fallback_name = None
+#         else:
+#             platform_name = "win64"
+#             fallback_name = None
+
+#         if DEBUG:
+#             print(f"[DEBUG] current_system={current_system}, machine={machine}")
+#             print(f"[DEBUG] platform_name={platform_name}, fallback_name={fallback_name}")
+
+#         api_url = "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json"
+#         # api_url = CHROME_DRIVER_URL
+#         headers = {
+#             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+#         }
+#         resp = requests.get(api_url, headers=headers, timeout=10)
+#         if resp.status_code != 200:
+#             print(f"[!] Chrome for Testing API alınamadı, status code: {resp.status_code}")
+#             return None, None
+
+#         versions = resp.json()
+#         stable = versions.get("channels", {}).get("Stable", {})
+#         version = stable.get("version")
+#         driver_list = stable.get("downloads", {}).get("chromedriver", [])
+
+#         if DEBUG:
+#             print(f"[DEBUG] Stable version={version}, driver_list length={len(driver_list)}")
+
+#         # driver URL'sini bul
+#         driver_url = None
+#         for item in driver_list:
+#             if item.get("platform") == platform_name:
+#                 driver_url = item.get("url")
+#                 break
+
+#         # ARM Mac fallback
+#         if not driver_url and fallback_name:
+#             for item in driver_list:
+#                 if item.get("platform") == fallback_name:
+#                     driver_url = item.get("url")
+#                     if DEBUG:
+#                         print(f"[DEBUG] Fallback driver_url kullanıldı: {driver_url}")
+#                     break
+
+#         if not driver_url:
+#             print(f"[!] Stable ChromeDriver bulunamadı: platform={platform_name}")
+#             return None, None
+
+#         return version, driver_url
+
+#     except Exception as e:
+#         print(f"[!] Stable ChromeDriver bilgisi alınamadı: {e}")
+#         return None, None
+
 
 def get_latest_chromedriver_info():
     """
-    API'den en güncel stable ChromeDriver bilgilerini döndürür.
-    Bot gibi görünmemek için User-Agent header ekleniyor.
+    En güncel stable ChromeDriver bilgilerini döndürür.
+    ARM Mac (arm64) için fallback olarak mac-x64 kullanır.
     """
     try:
         current_system = platform.system()
-        machine = platform.machine().lower()
+        machine = platform.machine()
+        print(f"[DEBUG] current_system={current_system}, machine={machine}")
 
         # Platform ismini belirle
         if current_system == "Windows":
@@ -16,8 +94,8 @@ def get_latest_chromedriver_info():
             fallback_name = None
         elif current_system == "Darwin":
             if machine in ["arm64", "aarch64"]:
-                platform_name = "mac-arm64"
-                fallback_name = "mac-x64"
+                platform_name = "mac-x64"  # ARM Mac fallback
+                fallback_name = None
             else:
                 platform_name = "mac-x64"
                 fallback_name = None
@@ -28,20 +106,18 @@ def get_latest_chromedriver_info():
             platform_name = "win64"
             fallback_name = None
 
-        # API isteği, headers ekli
         api_url = "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                          "AppleWebKit/537.36 (KHTML, like Gecko) "
-                          "Chrome/120.0.0.0 Safari/537.36"
-        }
-        resp = requests.get(api_url, headers=headers, timeout=10)
-        resp.raise_for_status()
-        versions = resp.json()
+        resp = requests.get(api_url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
+        if resp.status_code != 200:
+            print(f"[!] Chrome for Testing API alınamadı, status code: {resp.status_code}")
+            return None, None
 
+        versions = resp.json()
         stable = versions.get("channels", {}).get("Stable", {})
         version = stable.get("version")
         driver_list = stable.get("downloads", {}).get("chromedriver", [])
+
+        print(f"[DEBUG] Stable version={version}, driver_list length={len(driver_list)}")
 
         driver_url = None
         for item in driver_list:
@@ -49,27 +125,71 @@ def get_latest_chromedriver_info():
                 driver_url = item.get("url")
                 break
 
-        # Fallback varsa dene
+        # Eğer fallback gerekiyorsa
         if not driver_url and fallback_name:
             for item in driver_list:
                 if item.get("platform") == fallback_name:
                     driver_url = item.get("url")
-                    print(f"[i] {platform_name} driver bulunamadı, fallback olarak {fallback_name} kullanılıyor.")
+                    print(f"[DEBUG] Fallback driver kullanıldı: {fallback_name}")
                     break
 
         if not driver_url:
             print(f"[!] Stable ChromeDriver bulunamadı: platform={platform_name}")
-            return None, None
-
         return version, driver_url
 
-    except requests.exceptions.RequestException as e:
-        print(f"[!] ChromeDriver API isteği başarısız: {e}")
-        return None, None
     except Exception as e:
         print(f"[!] Stable ChromeDriver bilgisi alınamadı: {e}")
         return None, None
 
+
+def get_chromedriver_for_chromium(chromium_version):
+    """
+    Chromium sürümüne uygun ChromeDriver sürümünü bulur.
+    Eğer ARM Mac için driver yoksa x64 fallback kullanır.
+    """
+    major_version = chromium_version.split(".")[0]  # örn. "140"
+    system = platform.system()
+    machine = platform.machine()
+
+    # Platform adı belirleme
+    if system == "Windows":
+        platform_name = "win32"  # veya win64 driver varsa onu kullan
+    elif system == "Darwin":
+        if machine in ["arm64", "aarch64"]:
+            platform_name = "mac64_m1"  # ARM Mac
+            fallback_name = "mac64"      # Intel Mac
+        else:
+            platform_name = "mac64"
+            fallback_name = None
+    elif system == "Linux":
+        platform_name = "linux64"
+        fallback_name = None
+    else:
+        platform_name = "win32"
+        fallback_name = None
+
+    # ChromeDriver Storage API URL
+    # Major version mapping kullanıyoruz: https://chromedriver.storage.googleapis.com/LATEST_RELEASE_{major}
+    driver_version_url = f"https://chromedriver.storage.googleapis.com/LATEST_RELEASE_{major_version}"
+    try:
+        resp = requests.get(driver_version_url, timeout=10)
+        resp.raise_for_status()
+        driver_version = resp.text.strip()
+    except Exception as e:
+        print(f"[!] ChromeDriver versiyonu alınamadı: {e}")
+        return None, None
+
+    driver_download_url = f"https://chromedriver.storage.googleapis.com/{driver_version}/chromedriver_{platform_name}.zip"
+
+    # Eğer ARM Mac ve URL yoksa fallback deneyelim
+    if system == "Darwin" and machine in ["arm64", "aarch64"]:
+        check = requests.head(driver_download_url)
+        if check.status_code != 200 and fallback_name:
+            print(f"[i] ARM Mac için driver yok, fallback x64 kullanılıyor...")
+            platform_name = fallback_name
+            driver_download_url = f"https://chromedriver.storage.googleapis.com/{driver_version}/chromedriver_{platform_name}.zip"
+
+    return driver_version, driver_download_url
 
 
 def get_compatible_chromedriver_url(chromium_version):
@@ -176,9 +296,15 @@ def download_chromedriver():
         return
 
 # ----------------------------
-# Test için çalıştır
+# Self Test
 # ----------------------------
+# if __name__ == "__main__":
+#     version, url = get_latest_chromedriver_info()
+#     print(f"Stable ChromeDriver version: {version}")
+#     print(f"Download URL: {url}")
+
 if __name__ == "__main__":
-    version, url = get_latest_chromedriver_info()
-    print("Stable ChromeDriver version:", version)
-    print("Download URL:", url)
+    chromium_version = "140.0.7339.207"  # Örnek Chromium sürümü
+    driver_version, url = get_chromedriver_for_chromium(chromium_version)
+    print(f"Chromedriver version: {driver_version}")
+    print(f"Download URL: {url}")
