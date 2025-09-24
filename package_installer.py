@@ -1,7 +1,6 @@
 import os, re, requests, platform
 
-from defaults import DEBUG, IS_WINDOWS, IS_LINUX, IS_MAC, CHROMIUM_DIR, DRIVER_DIR, CHROMIUM_API_VERSIONS, CHROMIUM_API_WITH_DOWNLOADS, CHROMEDRIVER_STORAGE
-HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"}
+from defaults import DEBUG, IS_WINDOWS, IS_LINUX, IS_MAC, CHROMIUM_DIR, DRIVER_DIR, CHROMIUM_API_VERSIONS, CHROMIUM_API_WITH_DOWNLOADS, CHROMEDRIVER_STORAGE, HEADERS
 
 # -------------------------
 # Driver helpers

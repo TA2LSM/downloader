@@ -10,6 +10,8 @@ DIST_DIR = os.path.join(os.getcwd(), "dist")
 CHROMIUM_DIR = os.path.join(DIST_DIR, "chromium")
 DRIVER_DIR = os.path.join(DIST_DIR, "driver")
 
+HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"}
+
 CHROMIUM_API_VERSIONS = "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json"
 CHROMIUM_API_WITH_DOWNLOADS = "https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json"
 CHROMEDRIVER_STORAGE = "https://chromedriver.storage.googleapis.com"
@@ -19,6 +21,7 @@ DEFAULT_CHROME_DRIVER_MIN_SIZE = 5242880
 DEFAULT_CHROMIUM_MIN_SIZE = 20971520
 
 DEFAULT_TIME_BEFORE_PAGE_LOAD = 5
+DEFAULT_MAX_WAIT_TIME = 15
 
 IS_WINDOWS = sys.platform.startswith("win")
 IS_LINUX = sys.platform.startswith("linux")

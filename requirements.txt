@@ -2,3 +2,4 @@ requests                              # HTTP istekleri için
 selenium                              # Tarayıcı otomasyonu
 pywin32; platform_system=="Windows"   # Windows özel modüller
 PyInstaller
+undetected_chromedriver
