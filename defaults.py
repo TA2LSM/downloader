@@ -2,8 +2,8 @@ PROJECT_NAME = "Downloader"
 REQ_FILE = "requirements.txt"
 DEBUG = True
 
-CHROME_DRIVER_URL = "https://chromedriver.storage.googleapis.com/index.html"
-CHROMIUM_URL = ""
+CHROMEDRIVER_BASE = "https://chromedriver.storage.googleapis.com"
+CHROMIUM_API = "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json"
 
 DEFAULT_CHUNK_SIZE = 1024*1024  # 1 MB
 DEFAULT_CHROME_DRIVER_MIN_SIZE = 5242880

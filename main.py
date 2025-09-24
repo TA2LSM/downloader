@@ -1,18 +1,19 @@
 # TA2LSM / 23.09.2025
-import run 
+import run
 
 # -*- coding: utf-8 -*-
-import os, sys, subprocess, time, zipfile, shutil, urllib.request, requests
+import os, sys, subprocess, platform, time, zipfile, shutil, urllib.request, requests
 from urllib.parse import urlparse
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 
-from chromeDriver import get_latest_chromedriver_info, get_compatible_chromedriver_url, download_chromedriver
-from chromium import get_chromium_version, download_chromium
+from chromeDriver import get_latest_driver_version, build_driver_url
+from chromium import get_chromium_version, download_chromium, build_chromium_url
+from tools import download_file, extract_archive
 
-from defaults import DEFAULT_CHUNK_SIZE, DEFAULT_CHROME_DRIVER_MIN_SIZE, DEFAULT_CHROMIUM_MIN_SIZE
+from defaults import DEFAULT_CHUNK_SIZE, DEFAULT_CHROME_DRIVER_MIN_SIZE, DEFAULT_CHROMIUM_MIN_SIZE, CHROMIUM_API
 
 IS_WINDOWS = sys.platform.startswith("win")
 IS_LINUX = sys.platform.startswith("linux")
@@ -45,180 +46,108 @@ elif IS_LINUX:
 # ----------------------------
 # Check compatible versions 
 # ----------------------------
-# def ensure_chromium_and_driver():
-#     """
-#     Chromium ve ChromeDriver'ı kontrol eder, yoksa veya uyumsuzsa indirir.
-#     """
-#     print("[*] Chromium ve ChromeDriver kontrol ediliyor...")
-
-#     chromium_exists = os.path.exists(chromium_path)
-#     driver_exists = os.path.exists(chromedriver_path)
-
-#     if not chromium_exists and not driver_exists:
-#         # Hiçbiri yok → Stable ChromeDriver'a göre indir
-#         print("[!] Chromium ve ChromeDriver bulunamadı. Stable sürüm indirilecek...")
-
-#         version, driver_url = get_latest_chromedriver_info()
-#         if not version or not driver_url:
-#             input("[!] Stable ChromeDriver bilgisi alınamadı, Enter ile çıkış yap...")
-#             return False
-
-#         # Önce driver indir
-#         print(f"[+] Stable ChromeDriver indiriliyor... ({version})")
-#         if not download_file(driver_url, "chromedriver.zip", DEFAULT_CHROME_DRIVER_MIN_SIZE):
-#             return False
-#         unzip("chromedriver.zip", os.getcwd())
-
-#         # Sonra chromium indir
-#         print(f"[+] Stable Chromium indiriliyor... ({version})")
-#         if not download_chromium(version):
-#             return False
-
-#         return True
-
-#     # Eğer sadece biri varsa veya ikisi de varsa → uyumluluk kontrol et
-#     chromium_version = get_chromium_version(chromium_path) if chromium_exists else None
-#     driver_version = get_chromedriver_version(chromedriver_path) if driver_exists else None
-
-#     if chromium_version and driver_version:
-#         chromium_major = chromium_version.split(".")[0]
-#         driver_major = driver_version.split(".")[0]
-
-#         if chromium_major != driver_major:
-#             print(f"[!] Uyum problemi: Chromium {chromium_version} - Driver {driver_version}")
-#             print("[*] Stable sürümler indirilecek...")
-#             cleanup_existing()
-#             version, driver_url = get_latest_chromedriver_info()
-#             if version and driver_url:
-#                 download_file(driver_url, "chromedriver.zip", DEFAULT_CHROME_DRIVER_MIN_SIZE)
-#                 unzip("chromedriver.zip", os.getcwd())
-#                 download_chromium(version)
-#                 return True
-#             else:
-#                 input("[!] Stable ChromeDriver bulunamadı, Enter ile çıkış yap...")
-#                 return False
-#         else:
-#             print(f"[i] Chromium ({chromium_version}) ve Driver ({driver_version}) uyumlu.")
-#             return True
-
-#     # Eğer chromium var ama driver yok → driver indir
-#     if chromium_version and not driver_exists:
-#         print(f"[!] ChromeDriver eksik. Chromium {chromium_version} için indiriliyor...")
-#         driver_zip_url = get_compatible_chromedriver_url(chromium_version)
-#         if driver_zip_url:
-#             download_file(driver_zip_url, "chromedriver.zip", DEFAULT_CHROME_DRIVER_MIN_SIZE)
-#             unzip("chromedriver.zip", os.getcwd())
-#             return True
-#         else:
-#             print("[!] Uyumlu driver bulunamadı. Stable ikili indirilecek.")
-#             cleanup_existing()
-#             version, driver_url = get_latest_chromedriver_info()
-#             if version and driver_url:
-#                 download_file(driver_url, "chromedriver.zip", DEFAULT_CHROME_DRIVER_MIN_SIZE)
-#                 unzip("chromedriver.zip", os.getcwd())
-#                 download_chromium(version)
-#                 return True
-
-#     # Eğer driver var ama chromium yok → chromium indir
-#     if driver_version and not chromium_exists:
-#         print(f"[!] Chromium eksik. Driver {driver_version} için Chromium indiriliyor...")
-#         download_chromium(driver_version)
-#         return True
-
-#     return False
-
-def ensure_chromium_and_driver():
-    """
-    Chromium ve ChromeDriver'ı kontrol eder, yoksa veya uyumsuzsa indirir.
-    ARM Mac fallback için x64 driver kullanır.
-    """
+def detect_chromium_and_driver_versions():
     print("[*] Chromium ve ChromeDriver kontrol ediliyor...")
 
-    chromium_exists = os.path.exists(chromium_path)
-    driver_exists = os.path.exists(chromedriver_path)
+    system = platform.system()
+    machine = platform.machine()
 
-    def log_versions():
-        chromium_version = get_chromium_version(chromium_path) if chromium_exists else None
-        driver_version = get_chromedriver_version(chromedriver_path) if driver_exists else None
-        print(f"[DEBUG] Mevcut Chromium: {chromium_version}, ChromeDriver: {driver_version}")
-        return chromium_version, driver_version
+    chromium_version = None
+    driver_version = None
+    driver_url = None
+    chromium_url = None
 
-    chromium_version, driver_version = log_versions()
+    # --- Chromium stable sürümü al ---
+    try:
+        resp = requests.get(CHROMIUM_API, timeout=5).json()
+        chromium_version = resp["channels"]["Stable"]["version"]
+        print(f"[i] Stable Chromium sürümü: {chromium_version}")
+        # chromium_url ekle
+        chromium_url = build_chromium_url(chromium_version, system, machine)
+    except Exception as e:
+        print(f"[!] Chromium sürümü alınamadı: {e}")
+        return None, None, None, None
 
-    # ---- Hiçbiri yoksa ----
-    if not chromium_exists and not driver_exists:
-        print("[!] Chromium ve ChromeDriver bulunamadı. Stable sürüm indirilecek...")
-        version, driver_url = get_latest_chromedriver_info()
-        if not version or not driver_url:
-            input("[!] Stable ChromeDriver bulunamadı, Enter ile çıkış yap...")
-            return False
+    # --- Aynı sürüm ChromeDriver var mı? ---
+    # test_url = build_driver_url(chromium_version, system, machine)
+    # resp = requests.head(test_url)
+    # if resp.status_code == 200:
+    #     driver_version = chromium_version
+    #     driver_url = test_url
+    #     print(f"[+] Uyumlu ChromeDriver bulundu: {driver_version}")
+    # else:
+    #     print(f"[!] Chromium {chromium_version} için uyumlu driver yok.")
+    #     # En güncel driver al
+    #     driver_version = get_latest_driver_version()
+    #     driver_url = build_driver_url(driver_version, system, machine)
+    #     print(f"[+] En güncel ChromeDriver kullanılacak: {driver_version}")
+    #     # Chromium da bu driver sürümüne göre indirilecek
+    #     chromium_version = driver_version
+    # --- Aynı sürüm ChromeDriver var mı? ---
+    test_url = build_driver_url(chromium_version, system, machine)
+    resp = requests.head(test_url)
+    if resp.status_code == 200:
+        driver_version = chromium_version
+        driver_url = test_url
+        print(f"[+] Uyumlu ChromeDriver bulundu: {driver_version}")
+    else:
+        print(f"[!] Chromium {chromium_version} için uyumlu driver yok.")
+        # En güncel driver al
+        driver_version = get_latest_driver_version()
+        driver_url = build_driver_url(driver_version, system, machine)
+        print(f"[+] En güncel ChromeDriver kullanılacak: {driver_version}")
+        # Chromium da bu driver sürümüne göre indirilecek
+        chromium_version = driver_version
+        chromium_url = build_chromium_url(chromium_version, system, machine)
 
-        print(f"[+] Stable ChromeDriver indiriliyor... ({version})")
-        if not download_file(driver_url, "chromedriver.zip", DEFAULT_CHROME_DRIVER_MIN_SIZE):
-            return False
-        unzip("chromedriver.zip", os.getcwd())
+    return chromium_version, driver_version, driver_url, chromium_url
 
-        print(f"[+] Stable Chromium indiriliyor... ({version})")
-        if not download_chromium(version):
-            return False
-        return True
 
-    # ---- Sadece biri varsa veya ikisi de varsa ----
-    if chromium_version and driver_version:
-        chromium_major = chromium_version.split(".")[0]
-        driver_major = driver_version.split(".")[0]
+DIST_DIR = os.path.join(os.getcwd(), "dist")
+CHROMIUM_DIR = os.path.join(DIST_DIR, "chromium")
+DRIVER_DIR = os.path.join(DIST_DIR, "driver")
 
-        if chromium_major != driver_major:
-            print(f"[!] Uyum problemi: Chromium {chromium_version} - Driver {driver_version}")
-            print("[*] Stable sürümler indirilecek...")
-            cleanup_existing()
-            version, driver_url = get_latest_chromedriver_info()
-            if version and driver_url:
-                print(f"[+] Stable ChromeDriver indiriliyor... ({version})")
-                download_file(driver_url, "chromedriver.zip", DEFAULT_CHROME_DRIVER_MIN_SIZE)
-                unzip("chromedriver.zip", os.getcwd())
-                print(f"[+] Stable Chromium indiriliyor... ({version})")
-                download_chromium(version)
-                return True
-            else:
-                input("[!] Stable ChromeDriver bulunamadı, Enter ile çıkış yap...")
-                return False
-        else:
-            print(f"[i] Chromium ({chromium_version}) ve Driver ({driver_version}) uyumlu.")
-            return True
+def install_chromium_and_driver(chromium_url, driver_url):
+    """Hem Chromium hem Driver indirip dist altına kurar."""
+    os.makedirs(CHROMIUM_DIR, exist_ok=True)
+    os.makedirs(DRIVER_DIR, exist_ok=True)
 
-    # ---- Chromium var ama driver yok ----
-    if chromium_version and not driver_exists:
-        print(f"[!] ChromeDriver eksik. Chromium {chromium_version} için indiriliyor...")
-        driver_zip_url = get_compatible_chromedriver_url(chromium_version)
-        if not driver_zip_url:
-            print("[!] Uyumlu driver bulunamadı. ARM Mac için fallback x64 driver deneniyor...")
-            # ARM Mac fallback
-            version, driver_zip_url = get_latest_chromedriver_info()
-        if driver_zip_url:
-            download_file(driver_zip_url, "chromedriver.zip", DEFAULT_CHROME_DRIVER_MIN_SIZE)
-            unzip("chromedriver.zip", os.getcwd())
-            return True
-        else:
-            input("[!] ChromeDriver indirilemedi, Enter ile çıkış yap...")
-            return False
+    # --- Driver ---
+    driver_zip = os.path.join(DRIVER_DIR, "chromedriver.zip")
+    if download_file(driver_url, driver_zip):
+        extract_archive(driver_zip, DRIVER_DIR)
 
-    # ---- Driver var ama Chromium yok ----
-    if driver_version and not chromium_exists:
-        print(f"[!] Chromium eksik. Driver {driver_version} için Chromium indiriliyor...")
-        download_chromium(driver_version)
-        return True
+    # --- Chromium ---
+    chromium_pkg = os.path.join(CHROMIUM_DIR, os.path.basename(chromium_url))
+    if download_file(chromium_url, chromium_pkg):
+        extract_archive(chromium_pkg, CHROMIUM_DIR)
 
-    return False
+    print("[i] Chromium ve ChromeDriver dist/ altına kuruldu.")
 
+
+# ----------------------------
+# Test
+# ----------------------------
+if __name__ == "__main__":
+    chromium_version, driver_version, driver_url, chromium_url = detect_chromium_and_driver_versions()
+    print(f"Chromium: v{chromium_version} -> {chromium_url}")
+    print(f"Driver: v{driver_version} -> {driver_url}")
 
 # ----------------------------
 # Chromium + ChromeDriver kontrol
 # ----------------------------
-if not ensure_chromium_and_driver():
-    print("[!] Gerekli Chromium ve ChromeDriver indirilemedi.")
-    input("Çıkmak için Enter'a basın...")
-    sys.exit(1)
+# chromium_version, driver_version, driver_url = detect_chromium_and_driver_versions()
+# if not chromium_version or not driver_url:
+#     print("[!] Chromium veya ChromeDriver bilgisi alınamadı.")
+#     input("Çıkmak için Enter'a basın...")
+#     sys.exit(1)
+
+# chromium_url = build_chromium_url(chromium_version, platform.system(), platform.machine())
+
+# if not install_chromium_and_driver(chromium_url, driver_url):
+#     print("[!] Gerekli Chromium ve ChromeDriver indirilemedi.")
+#     input("Çıkmak için Enter'a basın...")
+#     sys.exit(1)
 
 chrome_options = Options()
 chrome_options.binary_location = chromium_path
