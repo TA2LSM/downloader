@@ -2,42 +2,56 @@ import os, sys, zipfile, shutil, requests  # HTTP istekleri için
 from defaults import CHROMIUM_API, DEFAULT_CHUNK_SIZE, DEFAULT_CHROMIUM_MIN_SIZE
 
 # -------------------------------------------------------------
-# def build_chromium_url(version, system, machine):
-#     """
-#     Chromium sürümüne göre platforma uygun indirme URL'sini üretir.
-#     """
-#     try:
-#         resp = requests.get(CHROMIUM_API, timeout=5).json()
-#         chrome_downloads = resp["channels"]["Stable"]["downloads"].get("chrome", [])
-#         platform_name = None
+def get_revision_from_version(version):
+    # Linux / Mac / Win için JSON parse edilip revision bulunabilir
+    # Örnek URL: https://omahaproxy.appspot.com/deps.json?version=114.0.5735.90
+    url = f"https://omahaproxy.appspot.com/deps.json?version={version}"
+    resp = requests.get(url, timeout=5).json()
+    return resp.get("chromium_base_position")
 
-#         if system == "Windows":
-#             platform_name = "win64"
-#         elif system == "Darwin":
-#             # ARM Mac için fallback x64 kullan
-#             platform_name = "mac-x64" if machine in ["arm64", "aarch64"] else "mac-x64"
-#         elif system == "Linux":
-#             platform_name = "linux64"
-#         for item in chrome_downloads:
-#             if item["platform"] == platform_name:
-#                 return item["url"]
-#     except Exception as e:
-#         print(f"[!] Chromium URL alınamadı: {e}")
-#     return None
-
+# -------------------------------------------------------------
 def build_chromium_url(version, system, machine):
-    # Chromium için snapshot dizini kullan
-    base_url = "https://commondatastorage.googleapis.com/chromium-browser-snapshots"
-    if system == "Darwin":
-        platform_name = "Mac"
-    elif system == "Windows":
-        platform_name = "Win"
-    else:
-        platform_name = "Linux"
-    # ARM Mac için fallback Mac x64
-    if system == "Darwin" and machine in ["arm64", "aarch64"]:
-        platform_name = "Mac"
-    return f"{base_url}/{platform_name}/{version}/chrome-{platform_name}.zip"
+    """
+    Chromium sürümüne göre platforma uygun indirme URL'sini üretir.
+    """
+    try:
+        resp = requests.get(CHROMIUM_API, timeout=5).json()
+        chrome_downloads = resp["channels"]["Stable"]["downloads"].get("chrome", [])
+        platform_name = None
+
+        if system == "Windows":
+            platform_name = "win64"
+        elif system == "Darwin":
+            # ARM Mac için fallback x64 kullan
+            platform_name = "mac-x64" if machine in ["arm64", "aarch64"] else "mac-x64"
+        elif system == "Linux":
+            platform_name = "linux64"
+        for item in chrome_downloads:
+            if item["platform"] == platform_name:
+                return item["url"]
+    except Exception as e:
+        print(f"[!] Chromium URL alınamadı: {e}")
+    return None
+
+# def build_chromium_url(revision, system, machine):
+#     """
+#     Chromium snapshot URL oluşturur.
+#     ARM Mac için chrome-mac-arm.zip kullanılır.
+#     Intel Mac ve diğer platformlar için chrome-mac.zip veya chrome-win.zip
+#     """
+#     if system == "Darwin":
+#         zip_name = "chrome-mac-arm.zip" if machine in ["arm64", "aarch64"] else "chrome-mac.zip"
+#         platform_folder = "Mac"
+#     elif system == "Windows":
+#         zip_name = "chrome-win.zip"
+#         platform_folder = "Win"
+#     elif system == "Linux":
+#         zip_name = "chrome-linux.zip"
+#         platform_folder = "Linux"
+#     else:
+#         raise ValueError(f"Unsupported system: {system}")
+
+#     return f"https://commondatastorage.googleapis.com/chromium-browser-snapshots/{platform_folder}/{revision}/{zip_name}"
 
 # -------------------------------------------------------------
 def get_chromium_version(chromium_path):

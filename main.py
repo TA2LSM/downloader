@@ -10,7 +10,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 
 from chromeDriver import get_latest_driver_version, build_driver_url
-from chromium import get_chromium_version, download_chromium, build_chromium_url
+from chromium import get_revision_from_version, build_chromium_url
 from tools import download_file, extract_archive
 
 from defaults import DEBUG, DEFAULT_CHUNK_SIZE, DEFAULT_CHROME_DRIVER_MIN_SIZE, DEFAULT_CHROMIUM_MIN_SIZE, CHROMIUM_API
@@ -132,12 +132,18 @@ def detect_chromium_and_driver_versions():
 
     # --- Aynı sürüm ChromeDriver var mı? ---
     test_url = build_driver_url(chromium_version, system, machine)
+    # chromium_revision = get_revision_from_version(chromium_version)
+    # if not chromium_revision:
+    #     print(f"[!] Chromium revision bulunamadı: {chromium_version}")
+    #     sys.exit(1)
+
     try:
         resp = requests.head(test_url, timeout=5)
         if resp.status_code == 200:
             driver_version = chromium_version
             driver_url = test_url
             chromium_url = build_chromium_url(chromium_version, system, machine)
+            # chromium_url = build_chromium_url(chromium_revision, system, machine)
             print(f"[+] Uyumlu ChromeDriver bulundu: {driver_version}")
         else:
             print(f"[!] Chromium {chromium_version} için uyumlu driver yok.")
@@ -146,6 +152,7 @@ def detect_chromium_and_driver_versions():
             driver_url = build_driver_url(driver_version, system, machine)
             chromium_version = driver_version  # Chromium da bu driver sürümüne göre indirilecek
             chromium_url = build_chromium_url(chromium_version, system, machine)
+            # chromium_url = build_chromium_url(chromium_revision, system, machine)
             print(f"[+] En güncel ChromeDriver kullanılacak: {driver_version}")
     except Exception as e:
         print(f"[!] Driver kontrolü sırasında hata: {e}")
@@ -153,6 +160,7 @@ def detect_chromium_and_driver_versions():
         driver_url = build_driver_url(driver_version, system, machine)
         chromium_version = driver_version
         chromium_url = build_chromium_url(chromium_version, system, machine)
+        # chromium_url = build_chromium_url(chromium_revision, system, machine)
 
     return chromium_version, driver_version, driver_url, chromium_url
 
