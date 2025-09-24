@@ -1,3 +1,5 @@
+import sys
+
 PROJECT_NAME = "Downloader"
 REQ_FILE = "requirements.txt"
 DEBUG = True
@@ -8,3 +10,7 @@ CHROMIUM_API = "https://googlechromelabs.github.io/chrome-for-testing/known-good
 DEFAULT_CHUNK_SIZE = 1024*1024  # 1 MB
 DEFAULT_CHROME_DRIVER_MIN_SIZE = 5242880
 DEFAULT_CHROMIUM_MIN_SIZE = 20971520
+
+IS_WINDOWS = sys.platform.startswith("win")
+IS_LINUX = sys.platform.startswith("linux")
+IS_MAC = sys.platform.startswith("darwin")

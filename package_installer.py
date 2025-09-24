@@ -1,5 +1,5 @@
-import re, requests, platform
-from defaults import DEBUG
+import os, re, requests, platform
+from defaults import DEBUG, IS_WINDOWS, IS_LINUX, IS_MAC
 
 # API'ler
 CHROMIUM_API_VERSIONS = "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json"
@@ -232,7 +232,7 @@ def detect_chromium_and_driver_versions():
     # Chromium'ı driver_version'a göre bul
     chromium_version = driver_version
     chromium_url = build_chromium_url_from_version(chromium_version, system, machine)
-    print(f"[i] En güncel ChromeDriver kullanılacak: {driver_version}")
+    print(f"[i] En güncel ChromeDriver ve buna uyumlu Chromium indirilecek: {driver_version}")
     return chromium_version, driver_version, driver_url, chromium_url
 
 def build_snapshot_url(revision, system, machine):
@@ -253,3 +253,35 @@ def build_snapshot_url(revision, system, machine):
         raise ValueError(f"Unsupported system: {system}")
 
     return f"https://commondatastorage.googleapis.com/chromium-browser-snapshots/{platform_folder}/{revision}/{zip_name}"
+
+# -------------------------
+# Installer helpers
+# -------------------------
+def find_chromium_binary(chromium_dir):
+    """chromium_dir içinde OS’ye göre executable bulur"""
+    if IS_WINDOWS:
+        for root, dirs, files in os.walk(chromium_dir):
+            if "chrome.exe" in files:
+                return os.path.join(root, "chrome.exe")
+    elif IS_MAC:
+        for root, dirs, files in os.walk(chromium_dir):
+            if "Chromium" in files and root.endswith("MacOS"):
+                return os.path.join(root, "Chromium")
+    elif IS_LINUX:
+        for root, dirs, files in os.walk(chromium_dir):
+            if "chrome" in files:
+                return os.path.join(root, "chrome")
+    return None
+
+def find_chromedriver_binary(driver_dir):
+    """driver_dir içinde OS’ye göre executable bulur"""
+    if IS_WINDOWS:
+        exe_name = "chromedriver.exe"
+    elif IS_MAC:
+        exe_name = "chromedriver_mac"
+    else:
+        exe_name = "chromedriver"
+    for root, dirs, files in os.walk(driver_dir):
+        if exe_name in files:
+            return os.path.join(root, exe_name)
+    return None
