@@ -1,7 +1,7 @@
 import os, sys, platform
 import subprocess
 
-# from defaults import PROJECT_NAME
+from defaults import PROJECT_NAME
 
 # ----------------------------
 # Proje ayarları
@@ -72,6 +72,7 @@ def build_executable():
         "PyInstaller",
         "--clean",
         "--onefile",
+        f"--name={PROJECT_NAME}",
         "--hidden-import=requests",
         "--hidden-import=selenium",
         entry_file

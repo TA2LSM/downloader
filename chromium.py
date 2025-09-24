@@ -10,28 +10,81 @@ def get_revision_from_version(version):
     return resp.get("chromium_base_position")
 
 # -------------------------------------------------------------
-def build_chromium_url(version, system, machine):
-    """
-    Chromium sürümüne göre platforma uygun indirme URL'sini üretir.
-    """
+# def build_chromium_url(version, system, machine):
+#     """
+#     Chromium sürümüne göre platforma uygun indirme URL'sini üretir.
+#     """
+#     try:
+#         resp = requests.get(CHROMIUM_API, timeout=5).json()
+#         stable_info = resp["channels"]["Stable"]
+#         chrome_downloads = stable_info.get("downloads", {}).get("chrome", [])
+#         # chrome_downloads = resp["channels"]["Stable"]["downloads"].get("chrome", [])
+        
+#         if system == "Windows":
+#             platform_name = "win64"
+#         elif system == "Darwin":
+#             platform_name = "mac-arm64" if machine in ["arm64", "aarch64"] else "mac-x64"
+#         elif system == "Linux":
+#             platform_name = "linux64"
+#         else:
+#             print(f"[!] Desteklenmeyen platform: {system}")
+#             return None
+
+#         for item in chrome_downloads:
+#             if item["platform"] == platform_name:
+#                 return item["url"]
+
+#         print(f"[!] Platform için URL bulunamadı: {platform_name}")
+#     except Exception as e:
+#         print(f"[!] Chromium URL alınamadı: {e}")
+#     return None
+
+def build_chromium_url(system, machine):
     try:
         resp = requests.get(CHROMIUM_API, timeout=5).json()
-        chrome_downloads = resp["channels"]["Stable"]["downloads"].get("chrome", [])
+        # En güncel sürümü al (versions[0] genelde en yeni)
+        latest = resp["versions"][0]  
+        version = latest["version"]
+
+        chrome_downloads = latest.get("downloads", {}).get("chrome", [])
         platform_name = None
 
         if system == "Windows":
             platform_name = "win64"
         elif system == "Darwin":
-            # ARM Mac için fallback x64 kullan
-            platform_name = "mac-x64" if machine in ["arm64", "aarch64"] else "mac-x64"
+            platform_name = "mac-arm64" if machine in ["arm64", "aarch64"] else "mac-x64"
         elif system == "Linux":
             platform_name = "linux64"
+
         for item in chrome_downloads:
             if item["platform"] == platform_name:
-                return item["url"]
+                return version, item["url"]
     except Exception as e:
         print(f"[!] Chromium URL alınamadı: {e}")
-    return None
+    return None, None
+
+# def build_chromium_url(version, system, machine):
+#     """
+#     Chromium sürümüne göre platforma uygun indirme URL'sini üretir.
+#     """
+#     try:
+#         resp = requests.get(CHROMIUM_API, timeout=5).json()
+#         chrome_downloads = resp["channels"]["Stable"]["downloads"].get("chrome", [])
+#         platform_name = None
+
+#         if system == "Windows":
+#             platform_name = "win64"
+#         elif system == "Darwin":
+#             # ARM Mac için fallback x64 kullan
+#             platform_name = "mac-x64" if machine in ["arm64", "aarch64"] else "mac-x64"
+#         elif system == "Linux":
+#             platform_name = "linux64"
+#         for item in chrome_downloads:
+#             if item["platform"] == platform_name:
+#                 return item["url"]
+#     except Exception as e:
+#         print(f"[!] Chromium URL alınamadı: {e}")
+#     return None
 
 # def build_chromium_url(revision, system, machine):
 #     """

@@ -51,9 +51,10 @@ pip install -r requirements.txt
 
 **venv** folder will be generated in the project root.
 
-## After build script error may occur
+## Script Execution
+After build, error may occur about script execution. OS permissions needed to be changed.
 
-+ **macOS**
++ **macOS** in the same directory with the builded code (build folder) :
 ```
 chmod +x download    <- make it executable
 ./download           <- run
@@ -70,8 +71,8 @@ Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser
 
 ## For executing
 After build
-+ **macOS** : go to "dist" folder and execute ./main 
-+ **Windows** : go to "dist" folder and double click main.exe
++ **macOS** : go to "dist" folder and execute ./Downloader 
++ **Windows** : go to "dist" folder and double click Downloader.exe
 
 ## Enable Virtual Environment
 This may need to test some modules by itselves. Without build some libraries may not be installed in the venv. Activate virtual environment :
