@@ -196,26 +196,26 @@ def install_chromium_and_driver(chromium_url, driver_url):
 # ----------------------------
 # Test
 # ----------------------------
-# if __name__ == "__main__":
-#     chromium_version, driver_version, driver_url, chromium_url = detect_chromium_and_driver_versions()
-#     print(f"Chromium: v{chromium_version} -> {chromium_url}")
-#     print(f"Driver: v{driver_version} -> {driver_url}")
+if __name__ == "__main__":
+    chromium_version, driver_version, driver_url, chromium_url = detect_chromium_and_driver_versions()
+    print(f"Chromium: v{chromium_version} -> {chromium_url}")
+    print(f"Driver: v{driver_version} -> {driver_url}")
 
 # ----------------------------
 # Chromium + ChromeDriver kontrol
 # ----------------------------
-chromium_version, driver_version, driver_url, chromium_url = detect_chromium_and_driver_versions()
+# chromium_version, driver_version, driver_url, chromium_url = detect_chromium_and_driver_versions()
 
-if not chromium_version or not driver_url or not chromium_url:
-    print("[!] Chromium veya ChromeDriver bilgisi alınamadı.")
-    input("Çıkmak için Enter'a basın...")
-    sys.exit(1)
+# if not chromium_version or not driver_url or not chromium_url:
+#     print("[!] Chromium veya ChromeDriver bilgisi alınamadı.")
+#     input("Çıkmak için Enter'a basın...")
+#     sys.exit(1)
 
-# Artık build_chromium_url çağırmaya gerek yok, chromium_url zaten hazır
-if not install_chromium_and_driver(chromium_url, driver_url):
-    print("[!] Gerekli Chromium ve ChromeDriver indirilemedi.")
-    input("Çıkmak için Enter'a basın...")
-    sys.exit(1)
+# # Artık build_chromium_url çağırmaya gerek yok, chromium_url zaten hazır
+# if not install_chromium_and_driver(chromium_url, driver_url):
+#     print("[!] Gerekli Chromium ve ChromeDriver indirilemedi.")
+#     input("Çıkmak için Enter'a basın...")
+#     sys.exit(1)
 
 chrome_options = Options()
 chrome_options.binary_location = chromium_path
