@@ -1,7 +1,7 @@
 import os, sys, platform
 import subprocess
 
-from defaults import PROJECT_NAME
+# from defaults import PROJECT_NAME
 
 # ----------------------------
 # Proje ayarları
@@ -9,8 +9,7 @@ from defaults import PROJECT_NAME
 
 VENV_DIR = os.path.join(os.getcwd(), "venv")  # proje dizini içinde venv
 REQ_FILE = os.path.join(os.getcwd(), "requirements.txt")
-MAIN_FILE = os.path.join(os.getcwd(), "main.py")
-ENTRY_FILE = os.path.join(os.getcwd(), "download.py")  # PyInstaller giriş noktası
+MAIN_FILE = os.path.join(os.getcwd(), "main.py") # PyInstaller giriş noktası
 
 # ----------------------------
 # Platform kontrolü
@@ -63,7 +62,10 @@ def build_executable():
     print("[i] PyInstaller ile tek dosya derleniyor...")
     python_exe = os.path.join(VENV_DIR, "Scripts", "python.exe") if IS_WINDOWS else os.path.join(VENV_DIR, "bin", "python")
 
-    entry_file = ENTRY_FILE if os.path.exists(ENTRY_FILE) else MAIN_FILE
+    entry_file = MAIN_FILE
+    if not os.path.exists(entry_file):
+        print(f"[!] {entry_file} bulunamadı, derleme yapılamıyor!")
+        return
 
     cmd = [
         python_exe,
@@ -75,16 +77,27 @@ def build_executable():
         "--hidden-import=selenium",
         entry_file
     ]
-    subprocess.check_call(cmd)
-    print("[i] Derleme tamamlandı. dist/ dizininde çalıştırılabilir dosya oluştu.")
+    try:
+        subprocess.check_call(cmd)
+        print("[i] Derleme tamamlandı. dist/ dizininde çalıştırılabilir dosya oluştu.")
+    except Exception as e:
+        print(f"[!] Derleme sırasında hata: {e}")
+        sys.exit(1)
 
 # ----------------------------
 # Akış
 # ----------------------------
 def main():
-    create_venv()
-    install_requirements()
-    build_executable()
+    try:
+        create_venv()
+        install_requirements()
+        build_executable()
+    except KeyboardInterrupt:
+        print("\n[i] İşlem kullanıcı tarafından durduruldu.")
+        sys.exit(0)
+    except Exception as e:
+        print(f"[!] Beklenmeyen hata: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

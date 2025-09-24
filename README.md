@@ -8,8 +8,9 @@ HTML Link Parser and Downloader
 
 OS restart may needed to proper PATH detection.
 
-* run.py
+* Build
 
+run -> python3 build.py
 run.py will create virtual environment and install dependencies defined in "requirements.txt".
 No need to execute pip install -r requirements.txt command.
 

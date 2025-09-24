@@ -4,40 +4,72 @@ from defaults import DEFAULT_CHUNK_SIZE, DEFAULT_CHROME_DRIVER_MIN_SIZE
 def get_latest_chromedriver_info():
     """
     API'den en güncel stable ChromeDriver bilgilerini döndürür.
+    Bot gibi görünmemek için User-Agent header ekleniyor.
     """
     try:
         current_system = platform.system()
+        machine = platform.machine().lower()
+
+        # Platform ismini belirle
         if current_system == "Windows":
             platform_name = "win64"
+            fallback_name = None
         elif current_system == "Darwin":
-            platform_name = "mac-x64"
+            if machine in ["arm64", "aarch64"]:
+                platform_name = "mac-arm64"
+                fallback_name = "mac-x64"
+            else:
+                platform_name = "mac-x64"
+                fallback_name = None
         elif current_system == "Linux":
             platform_name = "linux64"
+            fallback_name = None
         else:
-            platform_name = "win64"  # default fallback
+            platform_name = "win64"
+            fallback_name = None
 
+        # API isteği, headers ekli
         api_url = "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json"
-        resp = requests.get(api_url, timeout=10)
-        if resp.status_code != 200:
-            print(f"[!] Chrome for Testing API alınamadı, status code: {resp.status_code}")
-            return None, None
-        
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                          "AppleWebKit/537.36 (KHTML, like Gecko) "
+                          "Chrome/120.0.0.0 Safari/537.36"
+        }
+        resp = requests.get(api_url, headers=headers, timeout=10)
+        resp.raise_for_status()
         versions = resp.json()
+
         stable = versions.get("channels", {}).get("Stable", {})
         version = stable.get("version")
         driver_list = stable.get("downloads", {}).get("chromedriver", [])
-        
-        # win64 platformunu seç
+
         driver_url = None
         for item in driver_list:
-          if item.get("platform") == platform_name:
-              driver_url = item.get("url")
-              break
-        
+            if item.get("platform") == platform_name:
+                driver_url = item.get("url")
+                break
+
+        # Fallback varsa dene
+        if not driver_url and fallback_name:
+            for item in driver_list:
+                if item.get("platform") == fallback_name:
+                    driver_url = item.get("url")
+                    print(f"[i] {platform_name} driver bulunamadı, fallback olarak {fallback_name} kullanılıyor.")
+                    break
+
+        if not driver_url:
+            print(f"[!] Stable ChromeDriver bulunamadı: platform={platform_name}")
+            return None, None
+
         return version, driver_url
+
+    except requests.exceptions.RequestException as e:
+        print(f"[!] ChromeDriver API isteği başarısız: {e}")
+        return None, None
     except Exception as e:
         print(f"[!] Stable ChromeDriver bilgisi alınamadı: {e}")
         return None, None
+
 
 
 def get_compatible_chromedriver_url(chromium_version):
