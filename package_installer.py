@@ -211,6 +211,7 @@ def detect_chromium_and_driver_versions():
         return chromium_version, driver_version, driver_url, chromium_url
 
     # 3) Uyumlu driver yok -> en güncel driver al
+    print("[!] Uygun ChromeDriver sürümü bulunamdı!")
     if DEBUG: print(f"[i] ChromeDriver son sürümü ile uyumlu Chromium aranıyor...")
     latest_driver = get_latest_driver_version()
     if not latest_driver:
@@ -280,6 +281,9 @@ def find_chromedriver_binary(driver_dir):
             return os.path.join(root, exe_name)
     return None
 
+# -------------------------
+# Installer
+# -------------------------
 def install_chromium_and_driver(chromium_url, driver_url):
     """Hem Chromium hem Driver indirip dist altına kurar."""
     os.makedirs(CHROMIUM_DIR, exist_ok=True)

@@ -3,6 +3,7 @@ import os, sys
 PROJECT_NAME = "Downloader"
 REQ_FILE = "requirements.txt"
 DEBUG = True
+USE_UC_BROWSER = False
 
 # Derlenmiş exe çalışıyorsa exe'nin dizini, değilse script'in dizini
 # BASE_DIR = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.getcwd()
@@ -20,7 +21,7 @@ DEFAULT_CHUNK_SIZE = 1024*1024  # 1 MB
 DEFAULT_CHROME_DRIVER_MIN_SIZE = 5242880
 DEFAULT_CHROMIUM_MIN_SIZE = 20971520
 
-DEFAULT_TIME_BEFORE_PAGE_LOAD = 5
+DEFAULT_TIME_BEFORE_PAGE_LOAD = 10
 DEFAULT_MAX_WAIT_TIME = 15
 
 IS_WINDOWS = sys.platform.startswith("win")

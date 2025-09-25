@@ -1,12 +1,15 @@
 import os, time, requests, zipfile
+
 import undetected_chromedriver as uc
+from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
 
-# from selenium.webdriver.common.by import By
-# from selenium.webdriver.support.ui import WebDriverWait
-# from selenium.webdriver.support import expected_conditions as EC
+from defaults import DEBUG, USE_UC_BROWSER, HEADERS, DEFAULT_MAX_WAIT_TIME
 
-from defaults import DEBUG, HEADERS, DEFAULT_MAX_WAIT_TIME
+if USE_UC_BROWSER:
+    import undetected_chromedriver as uc
 
 # -------------------------------------------------------------
 def download_file(url, filename, min_size=1024):
@@ -80,76 +83,84 @@ def extract_archive(archive_path, extract_to):
         return False
 
 # -------------------------------------------------------------
-# def fetch_image_links(
-#     page_url: str,
-#     wait_time: int = 5,
-#     chromium_path: str = None,
-#     chrome_options=None,
-#     debug_html_path: str = None
-# ) -> list:
-#     """
-#     Sayfadan resim linklerini çeker. 
-#     - page_url: hedef URL
-#     - wait_time: sayfanın JS ile yüklenmesi için bekleme süresi
-#     - chromium_path: kullanmak istediğin Chromium binary yolu
-#     - chrome_options: selenium/uc.Chrome için Options objesi
-#     - debug_html_path: HTML debug kaydı için dosya yolu
-#     """
-#     if chrome_options is None:
-#         chrome_options = uc.ChromeOptions()
-#     if chromium_path:
-#         chrome_options.binary_location = chromium_path
+def fetch_image_links(
+    page_url: str,
+    wait_time: int = 5,
+    chrome_options = None,
+    chromedriver_path: str = None,
+    use_uc: bool = False,
+    debug_html_path: str = None
+) -> list:
+    """
+    Sayfadan resim linklerini çeker.
+    - page_url: hedef URL
+    - wait_time: JS yüklenmesi için bekleme süresi
+    - chrome_options: dışarıda hazırlanmış ChromeOptions objesi
+    - chromedriver_path: Selenium modu için driver yolu
+    - use_uc: undetected_chromedriver kullanılacaksa True
+    - debug_html_path: HTML debug kaydı için dosya yolu
+    """
+    driver = None
+    try:
+        if use_uc:
+            if DEBUG:
+                print("[i] DEBUG: UC Chrome binary_location ->", chrome_options.binary_location)
+                print(f"[i] DEBUG: UC Chrome arguments -> {chrome_options.arguments}")
 
-#     # Headless ve temel opsiyonlar
-#     chrome_options.add_argument("--headless")
-#     chrome_options.add_argument("--disable-gpu")
-#     chrome_options.add_argument("--no-sandbox")
-#     chrome_options.add_argument("--log-level=3")
-#     chrome_options.add_argument("--window-size=1920,1080")
+            driver = uc.Chrome(options=chrome_options)
+        else:
+            if not chromedriver_path:
+                raise RuntimeError("[!] chromedriver_path verilmedi! (Selenium modu için gerekli)")
 
+            if DEBUG:
+                print("[i] DEBUG: Selenium Chrome binary_location ->", chrome_options.binary_location)
+                print(f"[i] DEBUG: Selenium Chrome arguments -> {chrome_options.arguments}")
+
+            service = Service(chromedriver_path)
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+
+        print(f"[1] Sayfa yükleniyor: {page_url}")
+        driver.get(page_url)
+        time.sleep(wait_time)
+
+        # Optional: sayfa HTML debug kaydı
+        if debug_html_path:
+            with open(debug_html_path, "w", encoding="utf-8") as f:
+                f.write(driver.page_source)
+            print(f"[DEBUG] HTML debug kaydedildi: {debug_html_path}")
+
+        # Resim linklerini al
+        elements = driver.find_elements(By.CSS_SELECTOR, "a[href*='get_image']")
+        links = [el.get_attribute("href") for el in elements]
+
+        return links
+
+    finally:
+        if driver:
+            driver.quit()
+
+# def fetch_image_links(page_url, wait_time, chromium_path, chrome_options, debug_html_path=None):
+#     if DEBUG:
+#         print("[i] DEBUG: Chrome binary_location ->", chrome_options.binary_location)
+#         print(f"[i] DEBUG: Chrome arguments -> {chrome_options.arguments}")
+
+#     if not chromium_path or not os.path.exists(chromium_path):
+#       raise FileNotFoundError(f"Chromium binary bulunamadı: {chromium_path}")
+
+#     # ChromeOptions içine binary_location zaten set edilmiş olmalı
 #     driver = uc.Chrome(options=chrome_options)
 
-#     try:
-#         print(f"[1] Sayfa yükleniyor: {page_url}")
-#         driver.get(page_url)
-#         time.sleep(wait_time)
+#     driver.get(page_url)
+#     time.sleep(wait_time)
 
-#         # Optional: sayfa HTML debug kaydı
-#         if debug_html_path:
-#             with open(debug_html_path, "w", encoding="utf-8") as f:
-#                 f.write(driver.page_source)
-#             print(f"[DEBUG] HTML debug kaydedildi: {debug_html_path}")
+#     # Sayfa HTML'sini debug için kaydet
+#     if debug_html_path:
+#         with open(debug_html_path, "w", encoding="utf-8") as f:
+#             f.write(driver.page_source)
 
-#         # Resim linklerini al
-#         elements = driver.find_elements(By.CSS_SELECTOR, "a[href*='get_image']")
-#         links = [el.get_attribute("href") for el in elements]
+#     # Linkleri bul
+#     elements = driver.find_elements(By.CSS_SELECTOR, "a[href*='get_image']")
+#     links = [el.get_attribute("href") for el in elements]
 
-#         return links
-#     finally:
-#         driver.quit()
-
-def fetch_image_links(page_url, wait_time, chromium_path, chrome_options, debug_html_path=None):
-    if DEBUG:
-        print("[i] DEBUG: Chrome binary_location ->", chrome_options.binary_location)
-        print(f"[i] DEBUG: Chrome arguments -> {chrome_options.arguments}")
-
-    if not chromium_path or not os.path.exists(chromium_path):
-      raise FileNotFoundError(f"Chromium binary bulunamadı: {chromium_path}")
-
-    # ChromeOptions içine binary_location zaten set edilmiş olmalı
-    driver = uc.Chrome(options=chrome_options)
-
-    driver.get(page_url)
-    time.sleep(wait_time)
-
-    # Sayfa HTML'sini debug için kaydet
-    if debug_html_path:
-        with open(debug_html_path, "w", encoding="utf-8") as f:
-            f.write(driver.page_source)
-
-    # Linkleri bul
-    elements = driver.find_elements(By.CSS_SELECTOR, "a[href*='get_image']")
-    links = [el.get_attribute("href") for el in elements]
-
-    driver.quit()
-    return links
+#     driver.quit()
+#     return links
