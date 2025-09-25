@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, platform
 
 PROJECT_NAME = "Downloader"
 REQ_FILE = "requirements.txt"
@@ -26,9 +26,51 @@ DEFAULT_TIME_BEFORE_PAGE_LOAD = 10
 DEFAULT_MAX_WAIT_TIME = 15
 DEFAULT_TIME_BEFORE_FILE_ERASE = 2
 
-IS_WINDOWS = sys.platform.startswith("win")
-IS_LINUX = sys.platform.startswith("linux")
-IS_MAC = sys.platform.startswith("darwin")
+# Sistem bilgileri
+_system = sys.platform
+_machine = platform.machine().lower()
+
+# OS bayrakları
+IS_WINDOWS = _system.startswith("win")
+IS_LINUX = _system.startswith("linux")
+IS_MAC = _system == "darwin"
+
+# Mimari (normalize)
+if _machine in ("x86_64", "amd64"):
+    ARCH = "x64"
+elif _machine in ("arm64", "aarch64"):
+    ARCH = "arm64"
+else:
+    ARCH = "unknown"
+
+# Platform key (UC Chromium için)
+if IS_WINDOWS:
+    PLATFORM_KEY = "win64"
+elif IS_LINUX:
+    PLATFORM_KEY = "linux64"
+elif IS_MAC:
+    PLATFORM_KEY = "mac-arm64" if ARCH == "arm64" else "mac-x64"
+else:
+    PLATFORM_KEY = None
+
+# Chromium binary isimleri (OS'e göre)
+CHROMIUM_BINARY = "chrome.exe" if IS_WINDOWS else "chrome"
+CHROMIUM_DIRNAME = (
+    "chrome-win64" if IS_WINDOWS else
+    "chrome-linux64" if IS_LINUX else
+    ("chrome-mac" if ARCH == "x64" else "chrome-mac-arm64")
+)
+
+# Debug çıktısı (istersen aç/kapat)
+if __name__ == "__main__":
+    print("OS:", _system)
+    print("ARCH:", ARCH)
+    print("IS_WINDOWS:", IS_WINDOWS)
+    print("IS_LINUX:", IS_LINUX)
+    print("IS_MAC:", IS_MAC)
+    print("PLATFORM_KEY:", PLATFORM_KEY)
+    print("CHROMIUM_BINARY:", CHROMIUM_BINARY)
+    print("CHROMIUM_DIRNAME:", CHROMIUM_DIRNAME)
 
 # ----------------------------
 # Folders

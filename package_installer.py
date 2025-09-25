@@ -4,9 +4,11 @@ from pathlib import Path
 
 from tools import download_file, extract_archive
 from defaults import (
-  DEBUG, IS_WINDOWS, IS_LINUX, IS_MAC, CHROMIUM_DIR,
-  DRIVER_DIR, CHROMIUM_API_VERSIONS, CHROMIUM_API_WITH_DOWNLOADS,
-  CHROMEDRIVER_STORAGE, HEADERS, DEFAULT_TIME_BEFORE_FILE_ERASE, DIST_DIR
+  DEBUG, PLATFORM_KEY,
+  IS_WINDOWS, IS_LINUX, IS_MAC, 
+  CHROMIUM_DIR, DRIVER_DIR, DIST_DIR,
+  CHROMIUM_API_VERSIONS, CHROMIUM_API_WITH_DOWNLOADS, CHROMEDRIVER_STORAGE, HEADERS,
+  DEFAULT_TIME_BEFORE_FILE_ERASE
 )
 
 # -------------------------
@@ -397,54 +399,32 @@ def ensure_uc_chromium(dist_dir: str):
           kill_chromium_processes(chromium_path)
           time.sleep(DEFAULT_TIME_BEFORE_FILE_ERASE)
 
-
+    # Uyumsuz sürümü başka klasöre taşıma
     chromium_base, chromium_dir, chromium_path = get_chromium_paths(DIST_DIR)
-
-    # Eğer uyumsuz işareti varsa _old olarak taşıma işlemi
     if chromium_unusable and chromium_base.exists():
         move_unusable_chromium(chromium_base)
 
+    # Uygun sürüm indirilmeyecekse çık
     if not need_download:
         print("[i] Mevcut Chromium UC ile uyumlu, indirme atlandı.")
         return
 
     # Uygun sürümü indir
     print("[i] UC uyumlu Chromium indiriliyor...")
-
-    # Platform adı belirle
-    system_name = None
-    arch_name = None
-    if IS_WINDOWS:
-        system_name = "Windows"
-        arch_name = "x64"
-    elif IS_LINUX:
-        system_name = "Linux"
-        arch_name = "x64"
-    elif IS_MAC:
-        system_name = "Mac"
-        arch_name = "x64"  # gerekirse arm64 ekle
-
-    # API'den son stable sürümü al
     try:
+        # API'den son stable sürümü al
         r = requests.get(CHROMIUM_API_VERSIONS, headers=HEADERS, timeout=10)
         r.raise_for_status()
         data = r.json()
         stable = data['channels']['Stable']
         downloads = stable['downloads']
-        platform_key = None
 
-        if IS_WINDOWS:
-            platform_key = 'win64'
-        elif IS_LINUX:
-            platform_key = 'linux64'
-        elif IS_MAC:
-            platform_key = 'mac-arm64' if arch_name == 'arm64' else 'mac-x64'
-
-        chromium_info = downloads.get('chrome', {}).get(platform_key, {})
-        if not chromium_info:
+        chromium_list = downloads.get('chrome', {}).get(PLATFORM_KEY, [])
+        if not chromium_list:
             print("[!] Bu platform için UC Chromium bulunamadı.")
             return
 
+        chromium_info = chromium_list[0]  # ilk eleman
         zip_url = chromium_info['url']
         zip_name = os.path.basename(zip_url)
         zip_path = Path(dist_dir) / "chromium" / zip_name
