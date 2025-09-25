@@ -176,12 +176,14 @@ else:
     )
 
 if not links:
-    print("[!] Hiç resim linki bulunamadı.")
+    print("[!] Hiç link bulunamadı.")
     input("Çıkmak için Enter'a basın...")
     sys.exit(1)
 else:
-    print(f"[i] Toplam {len(links)} resim bulundu.")
+    print(f"[i] Toplam {len(links)} link bulundu.")
+
     print("[3] Linkler indiriliyor...")
     download_links(links, outdir)
-    print(f"[4] Tüm resimler indirildi.")
+    print("[4] Tüm linkler indirildi.")
+
     input("Çıkmak için Enter'a basın...")

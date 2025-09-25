@@ -106,7 +106,7 @@ def fetch_links(
             try:
                 driver = webdriver.Chrome(service=service, options=chrome_options)
                 if DEBUG:
-                  print("[i] Selenium driver başlatıldı!")
+                  print("[i] DEBUG: Selenium driver başlatıldı!")
             except Exception as e:
                 print(f"[!] Selenium driver başlatılamadı: {e}")
                 input("Çıkmak için Enter'a basın...")
