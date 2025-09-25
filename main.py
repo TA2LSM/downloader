@@ -21,7 +21,14 @@ from defaults import (
 if USE_UC_BROWSER:
     import undetected_chromedriver as uc
 
-from package_installer import detect_chromium_and_driver_versions, build_snapshot_url, find_chromium_binary, find_chromedriver_binary, install_chromium_and_driver
+from package_installer import (
+  detect_chromium_and_driver_versions,
+  build_snapshot_url, find_chromium_binary,
+  find_chromedriver_binary,
+  install_chromium_and_driver,
+  ensure_uc_chromium
+)
+
 from tools import download_file, extract_archive, fetch_image_links, download_images
 
 # ----------------------------
@@ -48,33 +55,56 @@ from tools import download_file, extract_archive, fetch_image_links, download_im
 CHROMIUM_PATH = os.path.join(DIST_DIR, "chromium", "chrome-win64", "chrome.exe")
 CHROMEDRIVER_PATH = os.path.join(DIST_DIR, "driver", "chromedriver.exe")
 
-# Eğer her ikisi de varsa sürüm kontrolü atla
-if os.path.exists(CHROMIUM_PATH) and os.path.exists(CHROMEDRIVER_PATH):
-    print("[i] Chromium ve ChromeDriver zaten kurulu, sürüm kontrolü atlanıyor.")
+# Undetected Chrome Driver
+if USE_UC_BROWSER:
+    print("[i] Undetected Chrome Driver kullanılacak, UC uyumlu Chromium kontrol ediliyor...")
+
+    # UC için uyumlu Chromium varsa kullanır, yoksa indirir
+    ensure_uc_chromium(DIST_DIR)
+
     chromium_path = CHROMIUM_PATH
-    chromedriver_path = CHROMEDRIVER_PATH
+    chromedriver_path = None  # UC kendi driver'ını kullanır
+
+# Selenium
 else:
-    # Kurulu değilse sürüm kontrolü ve indirme
-    chromium_version, driver_version, driver_url, chromium_url = detect_chromium_and_driver_versions()
+    # Eğer her ikisi de varsa sürüm kontrolü atla
+    if os.path.exists(CHROMIUM_PATH) and os.path.exists(CHROMEDRIVER_PATH):
+        print("[i] Chromium ve ChromeDriver zaten kurulu, sürüm kontrolü atlanıyor.")
+        chromium_path = CHROMIUM_PATH
+        chromedriver_path = CHROMEDRIVER_PATH
+    else:
+        # Kurulu değilse sürüm kontrolü ve indirme
+        chromium_version, driver_version, driver_url, chromium_url = detect_chromium_and_driver_versions()
 
-    # Eğer chromium_url None ise snapshot deposundan URL oluştur
-    if not chromium_url:
-        chromium_url = build_snapshot_url(driver_version, platform.system(), platform.machine())
+        # Eğer chromium_url None ise snapshot deposundan URL oluştur
+        if not chromium_url:
+            chromium_url = build_snapshot_url(driver_version, platform.system(), platform.machine())
 
-    if not install_chromium_and_driver(chromium_url, driver_url):
-        print("[!] Gerekli Chromium ve ChromeDriver indirilemedi.")
-        input("Çıkmak için Enter'a basın...")
-        sys.exit(1)
+        if not install_chromium_and_driver(chromium_url, driver_url):
+            print("[!] Gerekli Chromium ve ChromeDriver indirilemedi.")
+            input("Çıkmak için Enter'a basın...")
+            sys.exit(1)
 
-    # Kurulum sonrası yolları ayarla
-    chromium_path = CHROMIUM_PATH
-    chromedriver_path = CHROMEDRIVER_PATH
+        # Kurulum sonrası yolları ayarla
+        chromium_path = CHROMIUM_PATH
+        chromedriver_path = CHROMEDRIVER_PATH
+
+if DEBUG:
+    print(f"[i] Chromium path: {chromium_path}")
+
+    if chromedriver_path:
+        print(f"[i] ChromeDriver path: {chromedriver_path}")
 
 # ----------------------------
 # Kullanıcı seçimine göre driver hazırlığı
 # ----------------------------
 if USE_UC_BROWSER:
-    print("[i] Undetected Chrome Driver kullanılıyor...")
+    # print("[i] Undetected Chrome Driver kullanılıyor...")
+    # chromium_path = find_chromium_binary(CHROMIUM_DIR)
+
+    # if chromium_path and not uc_version_compatible(chromium_path):
+    #     print("[i] UC ile uyumsuz Chromium bulundu. Siliniyor...")
+    #     os.remove(chromium_path)  # veya tüm klasörü temizle    
 
     # UC ChromeOptions
     chrome_options = uc.ChromeOptions()

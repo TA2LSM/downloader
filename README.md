@@ -110,8 +110,16 @@ macOS: python3 build.py
 Windows: python build.py
 ```
 ## Testing modules
-* If all dependencies are installed you can self testing main.py :
+If all dependencies are installed correctly you can make self testing main.py :
 ```python
 macOS: python3 main.py
 Windows: python main.py
 ```
+
+## Selecting Driver 
+In defaults.py you can change driver method :
+```
+USE_UC_BROWSER = True -> Undetected Chrome Driver
+USE_UC_BROWSER = False -> Selenium
+```
+After changing driver method, you may delete "chromium" and "driver" folders under "dist" folder before you run this code. Version compabilities could be a problem and packages needs to be downloaded from zero.

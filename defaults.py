@@ -3,7 +3,7 @@ import os, sys
 PROJECT_NAME = "Downloader"
 REQ_FILE = "requirements.txt"
 DEBUG = True
-USE_UC_BROWSER = False
+USE_UC_BROWSER = True
 
 # Derlenmiş exe çalışıyorsa exe'nin dizini, değilse script'in dizini
 # BASE_DIR = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.getcwd()
@@ -13,6 +13,7 @@ DRIVER_DIR = os.path.join(DIST_DIR, "driver")
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"}
 
+# CHROMIUM_LATEST_API_VERSIONS = "https://omahaproxy.appspot.com/all.json"
 CHROMIUM_API_VERSIONS = "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json"
 CHROMIUM_API_WITH_DOWNLOADS = "https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json"
 CHROMEDRIVER_STORAGE = "https://chromedriver.storage.googleapis.com"
@@ -23,6 +24,7 @@ DEFAULT_CHROMIUM_MIN_SIZE = 20971520
 
 DEFAULT_TIME_BEFORE_PAGE_LOAD = 10
 DEFAULT_MAX_WAIT_TIME = 15
+DEFAULT_TIME_BEFORE_FILE_ERASE = 0.5
 
 IS_WINDOWS = sys.platform.startswith("win")
 IS_LINUX = sys.platform.startswith("linux")

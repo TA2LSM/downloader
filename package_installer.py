@@ -1,6 +1,13 @@
-import os, re, requests, platform
+import os, time, requests, platform, shutil, stat
+from pathlib import Path
+import undetected_chromedriver as uc
 
-from defaults import DEBUG, IS_WINDOWS, IS_LINUX, IS_MAC, CHROMIUM_DIR, DRIVER_DIR, CHROMIUM_API_VERSIONS, CHROMIUM_API_WITH_DOWNLOADS, CHROMEDRIVER_STORAGE, HEADERS
+from tools import download_file, extract_archive
+from defaults import (
+  DEBUG, IS_WINDOWS, IS_LINUX, IS_MAC, CHROMIUM_DIR,
+  DRIVER_DIR, CHROMIUM_API_VERSIONS, CHROMIUM_API_WITH_DOWNLOADS,
+  CHROMEDRIVER_STORAGE, HEADERS, DEFAULT_TIME_BEFORE_FILE_ERASE
+)
 
 # -------------------------
 # Driver helpers
@@ -59,6 +66,46 @@ def find_working_driver_url(version, system, machine):
 # -------------------------
 # Chromium helpers
 # -------------------------
+# def get_latest_chromium_version(channel="Stable", platform_name="Win"):
+#     """
+#     Belirtilen kanal için en son stabil Chromium sürümünü döndürür.
+#     - channel: "Stable", "Beta", "Dev" vs.
+#     - platform_name: "Win", "Mac", "Linux"
+#     """
+#     try:
+#         r = requests.get(CHROMIUM_API_VERSIONS, timeout=8)
+#         r.raise_for_status()
+#         data = r.json()  # list of dicts
+#         for entry in data:
+#             if entry["os"].lower() == platform_name.lower():
+#                 version = entry.get("versions", [])
+#                 for v in version:
+#                     if v.get("channel") == channel:
+#                         return v.get("current_version")
+#         return None
+#     except Exception as e:
+#         print(f"[!] Chromium sürümü alınamadı: {e}")
+#         return None
+
+def get_latest_chromium_version(platform_name: str):
+    """
+    Stable son sürümü ve platforma uygun indirilebilir linki döndürür.
+    platform_name: 'Win', 'Linux', 'Mac'
+    """
+    try:
+        r = requests.get(CHROMIUM_API_VERSIONS, timeout=8)
+        r.raise_for_status()
+        data = r.json()
+        stable = data.get("channels", {}).get("Stable", {})
+        downloads = stable.get("downloads", {}).get(platform_name, [])
+        if not downloads:
+            return None
+        # İlk paket linki (zip/portable)
+        return downloads[0].get("url")
+    except Exception as e:
+        print(f"[!] Chromium sürümü alınamadı: {e}")
+        return None
+
 def try_get_chromium_url_from_known_downloads(version, system, machine):
     """
     known-good-versions-with-downloads.json içinden eşleşen version varsa platforma göre URL döndürür.
@@ -165,6 +212,95 @@ def build_chromium_url_from_version(version, system, machine):
     # 3) fallback: yoksa None
     if DEBUG: print(f"[DEBUG] build_chromium_url_from_version: URL bulunamadı for version={version}")
     return None
+
+def rmtree_windows_safe(path: str):
+    """Windows'ta readonly ve kilitli dosyalar için güvenli rmtree"""
+    if not os.path.exists(path):
+        return
+
+    for entry in os.scandir(path):
+        full_path = entry.path
+        try:
+            if entry.is_dir(follow_symlinks=False):
+                rmtree_windows_safe(full_path)
+            else:
+                os.chmod(full_path, stat.S_IWRITE)
+                os.remove(full_path)
+        except Exception as e:
+            print(f"[!] Silme hatası: {full_path} - {e}")
+
+    try:
+        os.rmdir(path)
+    except Exception as e:
+        print(f"[!] Klasör silme hatası: {path} - {e}")
+
+def ensure_uc_chromium(dist_dir: str):
+    """
+    UC için uyumlu Chromium varsa onu kullanır.
+    Uyumsuz ise dist klasörünü temizler ve UC kendi uyumlu Chromium'unu indirir.
+    """
+    chromium_dir = Path(dist_dir) / "chromium" / "chrome-win64"
+    chromium_path = chromium_dir / "chrome.exe"
+
+    need_download = True
+
+    # Mevcut binary var mı ve başlatılabiliyor mu
+    if chromium_path.exists():
+        try:
+            driver = uc.Chrome(
+                browser_executable_path=str(chromium_path),
+                options=uc.ChromeOptions()
+            )
+            info = driver.capabilities
+            print(f"[i] Mevcut Chromium UC ile uyumlu: {info['browserVersion']}")
+            driver.quit()
+            need_download = False
+        except Exception as e:
+            print("[!] UC mevcut Chromium ile başlatılamıyor:", e)
+            print("[i] Uyumsuz Chromium siliniyor...")
+
+            time.sleep(DEFAULT_TIME_BEFORE_FILE_ERASE)
+
+            if IS_WINDOWS:
+                rmtree_windows_safe(chromium_dir)
+            else:
+                shutil.rmtree(chromium_dir)
+
+            time.sleep(DEFAULT_TIME_BEFORE_FILE_ERASE)
+
+    if need_download:
+        # UC kendi indirme mekanizmasını kullanır
+        print("[i] UC uyumlu Chromium indiriliyor...")
+
+        if IS_WINDOWS:
+            platform_name = "Win"
+        elif IS_LINUX:
+            platform_name = "Linux"
+        elif IS_MAC:
+            platform_name = "Mac"
+        else:
+            platform_name = None
+
+        link = get_latest_chromium_version(platform_name)
+        if not link:
+            print("[!] UC uyumlu Chromium bulunamadı, indirme iptal edildi.")
+        else:
+            filename = os.path.basename(link)
+            chromium_pkg = os.path.join(CHROMIUM_DIR, filename)
+
+            os.makedirs(CHROMIUM_DIR, exist_ok=True)
+
+            print(f"[i] İndirilecek link: {link}")
+            download_file(link, chromium_pkg)
+
+            # ZIP içeriğini CHROMIUM_DIR altına aç
+            print(f"[i] Arşiv açılıyor: {chromium_pkg}")
+            shutil.unpack_archive(chromium_pkg, CHROMIUM_DIR)
+            os.remove(chromium_pkg)  # ZIP dosyasını sil
+
+            print("[i] UC uyumlu Chromium hazır!")
+
+    return chromium_path
 
 # ----------------------------
 # Check compatible versions 
@@ -309,8 +445,10 @@ def install_chromium_and_driver(chromium_url, driver_url):
         chromium_pkg = os.path.join(CHROMIUM_DIR, os.path.basename(chromium_url))
         if download_file(chromium_url, chromium_pkg):
             extract_archive(chromium_pkg, CHROMIUM_DIR)
+
             if os.path.exists(chromium_pkg):
                 os.remove(chromium_pkg)
+        
         chromium_path = find_chromium_binary(CHROMIUM_DIR)
 
     print("[i] Chromium ve ChromeDriver dist/ altına kuruldu.")

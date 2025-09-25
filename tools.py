@@ -1,4 +1,4 @@
-import os, time, requests, zipfile, urllib.request
+import os, sys, time, requests, zipfile, tarfile, urllib.request
 
 import undetected_chromedriver as uc
 from selenium import webdriver
@@ -12,7 +12,7 @@ if USE_UC_BROWSER:
     import undetected_chromedriver as uc
 
 # -------------------------------------------------------------
-def download_file(url, filename, min_size=1024):
+def download_file(url, filename, min_size=1024*1024):
     """
     Belirtilen URL'den dosyayı indirir.
     min_size ile minimum boyutu (byte) kontrol eder.
@@ -100,14 +100,15 @@ def fetch_image_links(
     - use_uc: undetected_chromedriver kullanılacaksa True
     - debug_html_path: HTML debug kaydı için dosya yolu
     """
+    if DEBUG:
+      print("[i] DEBUG: Chrome Binary Location ->", chrome_options.binary_location)
+      print(f"[i] DEBUG: Chrome arguments -> {chrome_options.arguments}")
+
     driver = None
     try:
+        # Undetected Chrome Driver
         if use_uc:
-            if DEBUG:
-                print("[i] DEBUG: UC Chrome binary_location ->", chrome_options.binary_location)
-                print(f"[i] DEBUG: UC Chrome arguments -> {chrome_options.arguments}")
-
-            # Başlat
+            # Start
             try:
                 driver = uc.Chrome(options=chrome_options)
                 print("[i] UC driver başlatıldı!")
@@ -115,18 +116,14 @@ def fetch_image_links(
                 print(f"[!] UC driver başlatılamadı: {e}")
                 input("Çıkmak için Enter'a basın...")
                 sys.exit(1)
-
+        
+        # Selenium
         else:
             if not chromedriver_path:
                 raise RuntimeError("[!] chromedriver_path verilmedi! (Selenium modu için gerekli)")
 
-            if DEBUG:
-                print("[i] DEBUG: Selenium Chrome binary_location ->", chrome_options.binary_location)
-                print(f"[i] DEBUG: Selenium Chrome arguments -> {chrome_options.arguments}")
-
-            service = Service(chromedriver_path)
-            
-            # Başlat
+            service = Service(chromedriver_path)    
+            # Start
             try:
                 driver = webdriver.Chrome(service=service, options=chrome_options)
                 print("[i] Selenium driver başlatıldı!")
