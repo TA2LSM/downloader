@@ -111,15 +111,17 @@ if USE_UC_BROWSER:
     chrome_options = uc.ChromeOptions()
     chrome_options.binary_location = str(chromium_path)
 
-    if DEBUG:
-      chrome_options.add_argument("--headless-new") # tarayıcıyı açar
-    else:
-      chrome_options.add_argument("--headless") # tarayıcıyı açmaz
+    # tarayıcıyı arka planda açar
+    if not DEBUG:
+      chrome_options.add_argument("--headless=new")
+      # chrome_options.add_argument("--headless")    
 
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--log-level=3")
     chrome_options.add_argument("--window-size=800,600")
+
+    # chrome_options.add_argument('--proxy-server=http://127.0.0.1:8080')
     chrome_options.add_argument(f"user-agent={DEFAULT_HEADER['User-Agent']}")
     chrome_options.add_argument("--ignore-certificate-errors")
     chrome_options.add_argument("--allow-insecure-localhost")
@@ -139,15 +141,16 @@ else:
     chrome_options = Options()
     chrome_options.binary_location = chromium_path
 
-    if DEBUG:
-      chrome_options.add_argument("--headless-new") # tarayıcıyı açar
-    else:
-      chrome_options.add_argument("--headless") # tarayıcıyı açmaz
+    if not DEBUG:
+      chrome_options.add_argument("--headless=new")
+      # chrome_options.add_argument("--headless")
 
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--log-level=3")
     chrome_options.add_argument("--window-size=800,600")
+
+    # chrome_options.add_argument('--proxy-server=http://127.0.0.1:8080')
     chrome_options.add_argument(f"user-agent={DEFAULT_HEADER['User-Agent']}")
     chrome_options.add_argument("--ignore-certificate-errors")
     chrome_options.add_argument("--allow-insecure-localhost")

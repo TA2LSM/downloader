@@ -373,12 +373,11 @@ def ensure_uc_chromium(dist_dir: str):
 
             # Tarayıcıyı çalıştırıp bilgi al
             chrome_options = uc.ChromeOptions()
-            chrome_options.add_argument("--headless")
+            chrome_options.add_argument("--headless=new")
 
-            # if DEBUG:
-            #     chrome_options.add_argument("--headless-new")
-            # else:
-            #     chrome_options.add_argument("--headless")
+            # if not DEBUG:
+            #   chrome_options.add_argument("--headless=new")
+            #   # chrome_options.add_argument("--headless") 
                 
             driver = uc.Chrome(
                 browser_executable_path=str(chromium_path),

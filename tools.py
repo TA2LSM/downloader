@@ -2,9 +2,10 @@ import os, sys, time, requests, zipfile, tarfile, urllib.request
 
 import undetected_chromedriver as uc
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 from defaults import DEBUG, TEMP_DIR, USE_UC_BROWSER, DEF_DOWNLOAD_TIMEOUT, DEFAULT_TIME_BEFORE_PAGE_LOAD
 
@@ -115,7 +116,18 @@ def fetch_links(
         # print(f"[1] Sayfa yükleniyor: {page_url}")
         print(f"[1] Sayfanın tam yüklenmesi için {DEFAULT_TIME_BEFORE_PAGE_LOAD} sn gecikme olacak. Bekleyiniz...")
         driver.get(page_url)
-        time.sleep(wait_time)
+             
+        # time.sleep(wait_time)
+        searchedClassname = "album-holder"
+        try:
+            # Maksimum DEFAULT_TIME_BEFORE_PAGE_LOAD kadar bekle, element DOM'a eklenene kadar
+            album_holder = WebDriverWait(driver, DEFAULT_TIME_BEFORE_PAGE_LOAD).until(
+                EC.presence_of_element_located((By.CLASS_NAME, searchedClassname))
+            )
+            print(f'[i] Aranan key "{searchedClassname}" bulundu')
+        except Exception as e:
+            print(f'[!] Aranan key "{searchedClassname}" bulunamadı!')
+            return
 
         # indirilen HTML dosyasını kaydet
         if DEBUG:
