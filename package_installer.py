@@ -4,11 +4,11 @@ from pathlib import Path
 
 from tools import download_file, extract_archive
 from defaults import (
-  DEBUG, PLATFORM_KEY,
+  DEBUG, SYSTEM_NAME, ARCH,
   IS_WINDOWS, IS_LINUX, IS_MAC, 
   CHROMIUM_DIR, DRIVER_DIR, DIST_DIR,
   CHROMIUM_API_VERSIONS, CHROMIUM_API_WITH_DOWNLOADS, CHROMEDRIVER_STORAGE, HEADERS,
-  DEFAULT_TIME_BEFORE_FILE_ERASE
+  DEF_REQUEST_TIMEOUT, DEFAULT_TIME_BEFORE_FILE_ERASE
 )
 
 # -------------------------
@@ -17,7 +17,7 @@ from defaults import (
 def get_latest_driver_version():
     """En güncel chromedriver sürümünü döndürür (string) veya None."""
     try:
-        r = requests.get(f"{CHROMEDRIVER_STORAGE}/LATEST_RELEASE", timeout=8, headers=HEADERS)
+        r = requests.get(f"{CHROMEDRIVER_STORAGE}/LATEST_RELEASE", timeout=DEF_REQUEST_TIMEOUT, headers=HEADERS)
         r.raise_for_status()
         v = r.text.strip()
         if DEBUG: print(f"[DEBUG] ChromeDriver LATEST_RELEASE -> {v}")
@@ -55,7 +55,7 @@ def find_working_driver_url(version, system, machine):
     for url in build_driver_url_candidates(version, system, machine):
         try:
             if DEBUG: print(f"[DEBUG] ChomeDriver HEAD test: {url}")
-            r = requests.head(url, timeout=6, headers=HEADERS)
+            r = requests.head(url, timeout=DEF_REQUEST_TIMEOUT, headers=HEADERS)
             if r.status_code == 200:
                 if DEBUG: print(f"[DEBUG] ChomeDriver bulundu.")
                 return url
@@ -75,7 +75,7 @@ def find_working_driver_url(version, system, machine):
 #     - platform_name: "Win", "Mac", "Linux"
 #     """
 #     try:
-#         r = requests.get(CHROMIUM_API_VERSIONS, timeout=8)
+#         r = requests.get(CHROMIUM_API_VERSIONS, timeout=DEF_REQUEST_TIMEOUT)
 #         r.raise_for_status()
 #         data = r.json()  # list of dicts
 #         for entry in data:
@@ -95,7 +95,7 @@ def get_latest_chromium_version(platform_name: str):
     platform_name: 'Win', 'Linux', 'Mac'
     """
     try:
-        r = requests.get(CHROMIUM_API_VERSIONS, timeout=10)
+        r = requests.get(CHROMIUM_API_VERSIONS, timeout=DEF_REQUEST_TIMEOUT)
         r.raise_for_status()
         data = r.json()
         print(data.keys())
@@ -116,7 +116,7 @@ def try_get_chromium_url_from_known_downloads(version, system, machine):
     döndürür: url veya None
     """
     try:
-        r = requests.get(CHROMIUM_API_WITH_DOWNLOADS, timeout=8, headers=HEADERS)
+        r = requests.get(CHROMIUM_API_WITH_DOWNLOADS, timeout=DEF_REQUEST_TIMEOUT, headers=HEADERS)
         r.raise_for_status()
         data = r.json()
         # data['versions'] bir liste; en son en yeni olabilir. bulduğumuz version'la aynısı olan entry'yi ararız.
@@ -150,7 +150,7 @@ def get_revision_from_version(version):
     """
     try:
         url = f"https://omahaproxy.appspot.com/deps.json?version={version}"
-        r = requests.get(url, timeout=8, headers=HEADERS)
+        r = requests.get(url, timeout=DEF_REQUEST_TIMEOUT, headers=HEADERS)
         r.raise_for_status()
         j = r.json()
         # Denenecek olası anahtarlar (bazı endpointlerde farklı isimler oluyor)
@@ -189,7 +189,7 @@ def build_chromium_url_by_revision(revision, system, machine):
         url = f"{base}/{folder}/{revision}/{name}"
         try:
             if DEBUG: print(f"[DEBUG] chromium revision HEAD test: {url}")
-            r = requests.head(url, timeout=6, headers=HEADERS)
+            r = requests.head(url, timeout=DEF_REQUEST_TIMEOUT, headers=HEADERS)
             if r.status_code == 200:
                 if DEBUG: print(f"[DEBUG] chromium revision url found: {url}")
                 return url
@@ -413,21 +413,40 @@ def ensure_uc_chromium(dist_dir: str):
     print("[i] UC uyumlu Chromium indiriliyor...")
     try:
         # API'den son stable sürümü al
-        r = requests.get(CHROMIUM_API_VERSIONS, headers=HEADERS, timeout=10)
-        r.raise_for_status()
-        data = r.json()
+        try:
+            r = requests.get(CHROMIUM_API_VERSIONS, headers=HEADERS, timeout=DEF_REQUEST_TIMEOUT)
+            r.raise_for_status()
+            data = r.json()
+        except Exception as e:
+            print("[!] API çağrısı veya JSON parse hatası:", e)
+            input("Çıkmak için Enter'a basın...")
+            sys.exit(1)
+
+        if not data:
+            print("[!] API'den cevap alınamadı!")
+            input("Çıkmak için Enter'a basın...")
+            sys.exit(1)
+
         stable = data['channels']['Stable']
-        downloads = stable['downloads']
+        # beta = data['channels']['Beta']
+        # dev = data['channels']['Dev']
+        # canary = data['channels']['Canary']
+        revision = stable['revision']
 
-        chromium_list = downloads.get('chrome', {}).get(PLATFORM_KEY, [])
-        if not chromium_list:
-            print("[!] Bu platform için UC Chromium bulunamadı.")
-            return
+        zip_url = build_snapshot_url(revision, SYSTEM_NAME, ARCH)
+        print(f"[i] UC uyumlu Chromium indirilecek: {zip_url}")
 
-        chromium_info = chromium_list[0]  # ilk eleman
-        zip_url = chromium_info['url']
+        # chromium_list = downloads.get('chrome', {}).get(PLATFORM_KEY, [])
+        # chromium_list = downloads.get('chrome', {}).get(PLATFORM_KEY, {})
+        # if not chromium_list:
+        #     print("[!] Bu platform için UC Chromium bulunamadı.")
+        #     return
+
+        # chromium_info = chromium_list[0]  # ilk eleman
+        # zip_url = chromium_info['url']
         zip_name = os.path.basename(zip_url)
-        zip_path = Path(dist_dir) / "chromium" / zip_name
+        zip_path = Path(CHROMIUM_DIR) / zip_name
+        # chromium_path = Path(CHROMIUM_DIR) / CHROMIUM_BINARY
 
         # indirilecek klasör
         os.makedirs(chromium_dir, exist_ok=True)
@@ -474,7 +493,7 @@ def detect_chromium_and_driver_versions():
 
     # 1) stable chromium version al
     try:
-        r = requests.get(CHROMIUM_API_VERSIONS, timeout=8, headers=HEADERS)
+        r = requests.get(CHROMIUM_API_VERSIONS, timeout=DEF_REQUEST_TIMEOUT, headers=HEADERS)
         r.raise_for_status()
         j = r.json()
         # last-known-good-versions.json tipik olarak channels->Stable->version içerir

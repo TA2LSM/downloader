@@ -2,11 +2,13 @@ import os, sys, platform
 
 PROJECT_NAME = "Downloader"
 REQ_FILE = "requirements.txt"
-DEBUG = True
-USE_UC_BROWSER = True
 
-# Derlenmiş exe çalışıyorsa exe'nin dizini, değilse script'in dizini
+USE_UC_BROWSER = False
+DEBUG = False
+
+# BAKILACAK: Derlenmiş exe çalışıyorsa exe'nin dizini, değilse script'in dizini kullanılmalı.
 # BASE_DIR = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.getcwd()
+
 DIST_DIR = os.path.join(os.getcwd(), "dist")
 CHROMIUM_DIR = os.path.join(DIST_DIR, "chromium")
 DRIVER_DIR = os.path.join(DIST_DIR, "driver")
@@ -22,13 +24,18 @@ DEFAULT_CHUNK_SIZE = 1024*1024  # 1 MB
 DEFAULT_CHROME_DRIVER_MIN_SIZE = 5242880
 DEFAULT_CHROMIUM_MIN_SIZE = 20971520
 
-DEFAULT_TIME_BEFORE_PAGE_LOAD = 10
-DEFAULT_MAX_WAIT_TIME = 15
+DEF_REQUEST_TIMEOUT = 15
+DEF_DOWNLOAD_TIMEOUT = 30
+
+DEFAULT_TIME_BEFORE_PAGE_LOAD = 5
 DEFAULT_TIME_BEFORE_FILE_ERASE = 2
 
 # Sistem bilgileri
 _system = sys.platform
 _machine = platform.machine().lower()
+
+SYSTEM = platform.system().lower()
+MACHINE = _machine
 
 # OS bayrakları
 IS_WINDOWS = _system.startswith("win")
@@ -43,15 +50,19 @@ elif _machine in ("arm64", "aarch64"):
 else:
     ARCH = "unknown"
 
-# Platform key (UC Chromium için)
+# System Name and Platform key (UC Chromium için)
 if IS_WINDOWS:
     PLATFORM_KEY = "win64"
+    SYSTEM_NAME = "Windows"
 elif IS_LINUX:
     PLATFORM_KEY = "linux64"
+    SYSTEM_NAME = "Linux"
 elif IS_MAC:
     PLATFORM_KEY = "mac-arm64" if ARCH == "arm64" else "mac-x64"
+    SYSTEM_NAME = "Darwin"
 else:
     PLATFORM_KEY = None
+    SYSTEM_NAME = None
 
 # Chromium binary isimleri (OS'e göre)
 CHROMIUM_BINARY = "chrome.exe" if IS_WINDOWS else "chrome"
@@ -61,9 +72,9 @@ CHROMIUM_DIRNAME = (
     ("chrome-mac" if ARCH == "x64" else "chrome-mac-arm64")
 )
 
-# Debug çıktısı (istersen aç/kapat)
+# Debug çıktısı
 if __name__ == "__main__":
-    print("OS:", _system)
+    print(f"OS: {SYSTEM} ({_system})")
     print("ARCH:", ARCH)
     print("IS_WINDOWS:", IS_WINDOWS)
     print("IS_LINUX:", IS_LINUX)
@@ -71,27 +82,3 @@ if __name__ == "__main__":
     print("PLATFORM_KEY:", PLATFORM_KEY)
     print("CHROMIUM_BINARY:", CHROMIUM_BINARY)
     print("CHROMIUM_DIRNAME:", CHROMIUM_DIRNAME)
-
-# ----------------------------
-# Folders
-# ----------------------------
-# cwd = os.getcwd()
-
-# if IS_WINDOWS:
-#     chromedriver_path = os.path.join(cwd, "chromedriver.exe")
-#     chromium_dir = os.path.join(cwd, "chromium")
-#     chromium_path = os.path.join(chromium_dir, "chrome-win", "chrome.exe")
-# elif IS_MAC:
-#     chromedriver_path = os.path.join(cwd, "chromedriver_mac")
-#     chromium_dir = os.path.join(cwd, "chromium")
-#     chromium_path = os.path.join(chromium_dir, "chrome-mac", "Chromium.app/Contents/MacOS/Chromium")
-# elif IS_LINUX:
-#     chromedriver_path = os.path.join(cwd, "chromedriver_linux")
-#     chromium_dir = os.path.join(cwd, "chromium")
-#     chromium_path = os.path.join(chromium_dir, "chrome-linux", "chrome")
-
-# if IS_WINDOWS:
-#   try:
-#       import win32api
-#   except ImportError:
-#       win32api = None

@@ -11,8 +11,9 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 
 from defaults import (
-  DEBUG, USE_UC_BROWSER, HEADERS,
+  DEBUG, SYSTEM, MACHINE,
   IS_WINDOWS, IS_LINUX, IS_MAC,
+  USE_UC_BROWSER, HEADERS,
   DEFAULT_CHUNK_SIZE, DEFAULT_CHROME_DRIVER_MIN_SIZE,
   DEFAULT_CHROMIUM_MIN_SIZE, CHROMIUM_API_WITH_DOWNLOADS,
   DEFAULT_TIME_BEFORE_PAGE_LOAD, DIST_DIR, DRIVER_DIR, CHROMIUM_DIR
@@ -78,7 +79,7 @@ else:
 
         # Eğer chromium_url None ise snapshot deposundan URL oluştur
         if not chromium_url:
-            chromium_url = build_snapshot_url(driver_version, platform.system(), platform.machine())
+            chromium_url = build_snapshot_url(driver_version, SYSTEM, MACHINE)
 
         if not install_chromium_and_driver(chromium_url, driver_url):
             print("[!] Gerekli Chromium ve ChromeDriver indirilemedi.")
@@ -182,7 +183,8 @@ if not links:
     input("Çıkmak için Enter'a basın...")
     sys.exit(1)
 else:
-    print(f"[+] Toplam {len(links)} resim bulundu.")
+    print(f"[i] Toplam {len(links)} resim bulundu.")
+    print("[3] Linkler indiriliyor...")
     download_images(links, outdir)
-    print(f"[i] Tüm resimler indirildi.")
+    print(f"[4] Tüm resimler indirildi.")
     input("Çıkmak için Enter'a basın...")

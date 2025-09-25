@@ -6,7 +6,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 
-from defaults import DEBUG, USE_UC_BROWSER, HEADERS, DEFAULT_MAX_WAIT_TIME
+from defaults import DEBUG, USE_UC_BROWSER, DEF_DOWNLOAD_TIMEOUT
 
 if USE_UC_BROWSER:
     import undetected_chromedriver as uc
@@ -19,7 +19,7 @@ def download_file(url, filename, min_size=1024*1024):
     """
     try:
         print(f"[*] İndiriliyor: {url}")
-        resp = requests.get(url, stream=True, timeout=30, headers={
+        resp = requests.get(url, stream=True, timeout=DEF_DOWNLOAD_TIMEOUT, headers={
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) "
                           "AppleWebKit/537.36 (KHTML, like Gecko) "
                           "Chrome/117.0.0.0 Safari/537.36"
@@ -126,7 +126,8 @@ def fetch_image_links(
             # Start
             try:
                 driver = webdriver.Chrome(service=service, options=chrome_options)
-                print("[i] Selenium driver başlatıldı!")
+                if DEBUG:
+                  print("[i] Selenium driver başlatıldı!")
             except Exception as e:
                 print(f"[!] Selenium driver başlatılamadı: {e}")
                 input("Çıkmak için Enter'a basın...")
@@ -143,6 +144,7 @@ def fetch_image_links(
             print(f"[DEBUG] HTML dosyası kaydedildi: {debug_html_path}")
 
         # Resim linklerini al
+        print("[2] Linkler ayıklanıyor...")
         elements = driver.find_elements(By.CSS_SELECTOR, "a[href*='get_image']")
         links = [el.get_attribute("href") for el in elements]
 
