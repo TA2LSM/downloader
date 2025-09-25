@@ -4,12 +4,13 @@ PROJECT_NAME = "Downloader"
 REQ_FILE = "requirements.txt"
 
 USE_UC_BROWSER = False
-DEBUG = False
+DEBUG = True
 
 # BAKILACAK: Derlenmiş exe çalışıyorsa exe'nin dizini, değilse script'in dizini kullanılmalı.
 # BASE_DIR = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.getcwd()
 
 DIST_DIR = os.path.join(os.getcwd(), "dist")
+TEMP_DIR = os.path.join(os.getcwd(), "temp")
 CHROMIUM_DIR = os.path.join(DIST_DIR, "chromium")
 DRIVER_DIR = os.path.join(DIST_DIR, "driver")
 
@@ -27,7 +28,7 @@ DEFAULT_CHROMIUM_MIN_SIZE = 20971520
 DEF_REQUEST_TIMEOUT = 15
 DEF_DOWNLOAD_TIMEOUT = 30
 
-DEFAULT_TIME_BEFORE_PAGE_LOAD = 5
+DEFAULT_TIME_BEFORE_PAGE_LOAD = 8
 DEFAULT_TIME_BEFORE_FILE_ERASE = 2
 
 # Sistem bilgileri

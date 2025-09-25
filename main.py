@@ -16,7 +16,7 @@ from defaults import (
   USE_UC_BROWSER, HEADERS,
   DEFAULT_CHUNK_SIZE, DEFAULT_CHROME_DRIVER_MIN_SIZE,
   DEFAULT_CHROMIUM_MIN_SIZE, CHROMIUM_API_WITH_DOWNLOADS,
-  DEFAULT_TIME_BEFORE_PAGE_LOAD, DIST_DIR, DRIVER_DIR, CHROMIUM_DIR
+  DEFAULT_TIME_BEFORE_PAGE_LOAD, DIST_DIR, DRIVER_DIR, CHROMIUM_DIR, TEMP_DIR
   )
 
 if USE_UC_BROWSER:
@@ -30,7 +30,7 @@ from package_installer import (
   ensure_uc_chromium
 )
 
-from tools import download_file, extract_archive, fetch_image_links, download_images
+from tools import download_file, extract_archive, fetch_links, download_links
 
 # ----------------------------
 # Test
@@ -159,23 +159,20 @@ os.makedirs(outdir, exist_ok=True)
 # ----------------------------
 # Sayfayı yükle, analiz et ve resimleri indir
 # ----------------------------
-DEBUG_HTML = os.path.join(os.getcwd(), "debug_page.html")
 if USE_UC_BROWSER:
-    links = fetch_image_links(
+    links = fetch_links(
         page_url,
         DEFAULT_TIME_BEFORE_PAGE_LOAD,
         chrome_options=chrome_options,
         use_uc=True,
-        debug_html_path=DEBUG_HTML
     )
 else:
-    links = fetch_image_links(
+    links = fetch_links(
         page_url,
         DEFAULT_TIME_BEFORE_PAGE_LOAD,
         chrome_options=chrome_options,
         chromedriver_path=chromedriver_path,
         use_uc=False,
-        debug_html_path=DEBUG_HTML
     )
 
 if not links:
@@ -185,6 +182,6 @@ if not links:
 else:
     print(f"[i] Toplam {len(links)} resim bulundu.")
     print("[3] Linkler indiriliyor...")
-    download_images(links, outdir)
+    download_links(links, outdir)
     print(f"[4] Tüm resimler indirildi.")
     input("Çıkmak için Enter'a basın...")

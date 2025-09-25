@@ -6,11 +6,30 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 
-from defaults import DEBUG, USE_UC_BROWSER, DEF_DOWNLOAD_TIMEOUT
+from defaults import DEBUG, TEMP_DIR, USE_UC_BROWSER, DEF_DOWNLOAD_TIMEOUT, DEFAULT_TIME_BEFORE_PAGE_LOAD
 
 if USE_UC_BROWSER:
     import undetected_chromedriver as uc
 
+# -------------------------------------------------------------
+def extract_archive(archive_path, extract_to):
+    """Zip veya tar.xz arşivlerini açar."""
+    try:
+        if archive_path.endswith(".zip"):
+            with zipfile.ZipFile(archive_path, "r") as zf:
+                zf.extractall(extract_to)
+        elif archive_path.endswith(".tar.xz"):
+            with tarfile.open(archive_path, "r:xz") as tf:
+                tf.extractall(extract_to)
+        else:
+            print(f"[!] Desteklenmeyen arşiv formatı: {archive_path}")
+            return False
+        print(f"[+] Açıldı: {archive_path} → {extract_to}")
+        return True
+    except Exception as e:
+        print(f"[!] Arşiv açma hatası: {e}")
+        return False
+    
 # -------------------------------------------------------------
 def download_file(url, filename, min_size=1024*1024):
     """
@@ -45,51 +64,12 @@ def download_file(url, filename, min_size=1024*1024):
         return False
 
 # -------------------------------------------------------------
-# def unzip(zip_path, extract_to):
-#     """
-#     Zip dosyasını extract_to klasörüne açar.
-#     """
-#     try:
-#         if not os.path.exists(zip_path):
-#             print(f"[!] Zip dosyası bulunamadı: {zip_path}")
-#             return False
-
-#         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-#             zip_ref.extractall(extract_to)
-
-#         print(f"[+] Açıldı: {zip_path} → {extract_to}")
-#         return True
-#     except Exception as e:
-#         print(f"[!] Zip açma hatası: {e}")
-#         return False
-
-# -------------------------------------------------------------
-def extract_archive(archive_path, extract_to):
-    """Zip veya tar.xz arşivlerini açar."""
-    try:
-        if archive_path.endswith(".zip"):
-            with zipfile.ZipFile(archive_path, "r") as zf:
-                zf.extractall(extract_to)
-        elif archive_path.endswith(".tar.xz"):
-            with tarfile.open(archive_path, "r:xz") as tf:
-                tf.extractall(extract_to)
-        else:
-            print(f"[!] Desteklenmeyen arşiv formatı: {archive_path}")
-            return False
-        print(f"[+] Açıldı: {archive_path} → {extract_to}")
-        return True
-    except Exception as e:
-        print(f"[!] Arşiv açma hatası: {e}")
-        return False
-
-# -------------------------------------------------------------
-def fetch_image_links(
+def fetch_links(
     page_url: str,
     wait_time: int = 5,
     chrome_options = None,
     chromedriver_path: str = None,
     use_uc: bool = False,
-    debug_html_path: str = None
 ) -> list:
     """
     Sayfadan resim linklerini çeker.
@@ -98,7 +78,6 @@ def fetch_image_links(
     - chrome_options: dışarıda hazırlanmış ChromeOptions objesi
     - chromedriver_path: Selenium modu için driver yolu
     - use_uc: undetected_chromedriver kullanılacaksa True
-    - debug_html_path: HTML debug kaydı için dosya yolu
     """
     if DEBUG:
       print("[i] DEBUG: Chrome Binary Location ->", chrome_options.binary_location)
@@ -133,12 +112,15 @@ def fetch_image_links(
                 input("Çıkmak için Enter'a basın...")
                 sys.exit(1)
 
-        print(f"[1] Sayfa yükleniyor: {page_url}")
+        # print(f"[1] Sayfa yükleniyor: {page_url}")
+        print(f"[1] Sayfanın tam yüklenmesi için {DEFAULT_TIME_BEFORE_PAGE_LOAD} sn gecikme olacak. Bekleyiniz...")
         driver.get(page_url)
         time.sleep(wait_time)
 
-        # Optional: sayfa HTML debug kaydı
-        if DEBUG and debug_html_path:
+        # indirilen HTML dosyasını kaydet
+        if DEBUG:
+            os.makedirs(TEMP_DIR, exist_ok=True)
+            debug_html_path = os.path.join(TEMP_DIR, "page.html")
             with open(debug_html_path, "w", encoding="utf-8") as f:
                 f.write(driver.page_source)
             print(f"[DEBUG] HTML dosyası kaydedildi: {debug_html_path}")
@@ -155,7 +137,7 @@ def fetch_image_links(
             driver.quit()
 
 # -------------------------------------------------------------
-def download_images(links: list, outdir: str):
+def download_links(links: list, outdir: str):
     os.makedirs(outdir, exist_ok=True)
     total = len(links)
 
