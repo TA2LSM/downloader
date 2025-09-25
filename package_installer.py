@@ -211,7 +211,7 @@ def detect_chromium_and_driver_versions():
         return chromium_version, driver_version, driver_url, chromium_url
 
     # 3) Uyumlu driver yok -> en güncel driver al
-    print("[!] Uygun ChromeDriver sürümü bulunamdı!")
+    print("[!] Uygun ChromeDriver sürümü bulunamadı!")
     if DEBUG: print(f"[i] ChromeDriver son sürümü ile uyumlu Chromium aranıyor...")
     latest_driver = get_latest_driver_version()
     if not latest_driver:

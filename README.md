@@ -7,7 +7,7 @@ This project gets URL as an input and downloads it. After that parses html file 
 <a href="...">link</a>
 ```
 
-then download every link in that html file to user's desktop. Chromium and ChromeDriver used for this purpose.
+then download every link in that html file to user's desktop. Undetected Chromedriver, Chromium and ChromeDriver used for this purpose.
 
 ## Adding python to PATH
 If you couldn't succeed to adding python to path by python setup. Do it manually :

@@ -10,13 +10,19 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 
-from defaults import DEBUG, USE_UC_BROWSER, HEADERS, IS_WINDOWS, IS_LINUX, IS_MAC, DEFAULT_CHUNK_SIZE, DEFAULT_CHROME_DRIVER_MIN_SIZE, DEFAULT_CHROMIUM_MIN_SIZE, CHROMIUM_API_WITH_DOWNLOADS, DEFAULT_TIME_BEFORE_PAGE_LOAD, DRIVER_DIR, CHROMIUM_DIR
+from defaults import (
+  DEBUG, USE_UC_BROWSER, HEADERS,
+  IS_WINDOWS, IS_LINUX, IS_MAC,
+  DEFAULT_CHUNK_SIZE, DEFAULT_CHROME_DRIVER_MIN_SIZE,
+  DEFAULT_CHROMIUM_MIN_SIZE, CHROMIUM_API_WITH_DOWNLOADS,
+  DEFAULT_TIME_BEFORE_PAGE_LOAD, DIST_DIR, DRIVER_DIR, CHROMIUM_DIR
+  )
 
 if USE_UC_BROWSER:
     import undetected_chromedriver as uc
 
 from package_installer import detect_chromium_and_driver_versions, build_snapshot_url, find_chromium_binary, find_chromedriver_binary, install_chromium_and_driver
-from tools import download_file, extract_archive, fetch_image_links
+from tools import download_file, extract_archive, fetch_image_links, download_images
 
 # ----------------------------
 # Test
@@ -29,24 +35,40 @@ from tools import download_file, extract_archive, fetch_image_links
 # ----------------------------
 # Chromium + ChromeDriver kontrol
 # ----------------------------
-chromium_version, driver_version, driver_url, chromium_url = detect_chromium_and_driver_versions()
 
-# Eğer chromium_url None ise snapshot deposundan URL oluştur
-if not chromium_url:
-    chromium_url = build_snapshot_url(driver_version, platform.system(), platform.machine())
+# # Başlatmadan önce yolları kontrol et
+# chromium_path = find_chromium_binary(CHROMIUM_DIR)
 
-if not install_chromium_and_driver(chromium_url, driver_url):
-    print("[!] Gerekli Chromium ve ChromeDriver indirilemedi.")
-    input("Çıkmak için Enter'a basın...")
-    sys.exit(1)
+# if not chromium_path or not os.path.exists(chromium_path):
+#     print(f"[!] Chromium binary bulunamadı: {chromium_path}")
+#     input("Çıkmak için Enter'a basın...")
+#     sys.exit(1)
 
-# Başlatmadan önce yolları kontrol et
-chromium_path = find_chromium_binary(CHROMIUM_DIR)
+# Kurulu dosya yolları
+CHROMIUM_PATH = os.path.join(DIST_DIR, "chromium", "chrome-win64", "chrome.exe")
+CHROMEDRIVER_PATH = os.path.join(DIST_DIR, "driver", "chromedriver.exe")
 
-if not chromium_path or not os.path.exists(chromium_path):
-    print(f"[!] Chromium binary bulunamadı: {chromium_path}")
-    input("Çıkmak için Enter'a basın...")
-    sys.exit(1)
+# Eğer her ikisi de varsa sürüm kontrolü atla
+if os.path.exists(CHROMIUM_PATH) and os.path.exists(CHROMEDRIVER_PATH):
+    print("[i] Chromium ve ChromeDriver zaten kurulu, sürüm kontrolü atlanıyor.")
+    chromium_path = CHROMIUM_PATH
+    chromedriver_path = CHROMEDRIVER_PATH
+else:
+    # Kurulu değilse sürüm kontrolü ve indirme
+    chromium_version, driver_version, driver_url, chromium_url = detect_chromium_and_driver_versions()
+
+    # Eğer chromium_url None ise snapshot deposundan URL oluştur
+    if not chromium_url:
+        chromium_url = build_snapshot_url(driver_version, platform.system(), platform.machine())
+
+    if not install_chromium_and_driver(chromium_url, driver_url):
+        print("[!] Gerekli Chromium ve ChromeDriver indirilemedi.")
+        input("Çıkmak için Enter'a basın...")
+        sys.exit(1)
+
+    # Kurulum sonrası yolları ayarla
+    chromium_path = CHROMIUM_PATH
+    chromedriver_path = CHROMEDRIVER_PATH
 
 # ----------------------------
 # Kullanıcı seçimine göre driver hazırlığı
@@ -57,20 +79,11 @@ if USE_UC_BROWSER:
     # UC ChromeOptions
     chrome_options = uc.ChromeOptions()
     chrome_options.binary_location = str(chromium_path)
-    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--log-level=3")
     chrome_options.add_argument("--window-size=1920,1080")
-
-    # Başlat
-    try:
-        driver = uc.Chrome(options=chrome_options)
-        print("[i] UC driver başlatıldı!")
-    except Exception as e:
-        print(f"[!] UC driver başlatılamadı: {e}")
-        input("Çıkmak için Enter'a basın...")
-        sys.exit(1)
 
 else:
     print("[i] Selenium kullanılıyor...")
@@ -85,22 +98,15 @@ else:
 
     chrome_options = Options()
     chrome_options.binary_location = chromium_path
-    chrome_options.add_argument("--headless")
+    # chrome_options.add_argument("--headless-new") # tarayıcıyı açar
+    chrome_options.add_argument("--headless") # tarayıcıyı açmaz
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--log-level=3")
     chrome_options.add_argument("--window-size=1920,1080")
-
-    service = Service(chromedriver_path)
-
-    # Başlat
-    try:
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-        print("[i] Selenium driver başlatıldı!")
-    except Exception as e:
-        print(f"[!] Selenium driver başlatılamadı: {e}")
-        input("Çıkmak için Enter'a basın...")
-        sys.exit(1)
+    chrome_options.add_argument("--ignore-certificate-errors")
+    # chrome_options.add_argument("--allow-insecure-localhost")
+    # chrome_options.add_argument("--disable-web-security")
 
 # --- READY to GO! -------------------------
 page_url = input("Sayfa URL'sini girin: ").strip()
@@ -120,7 +126,7 @@ outdir = os.path.join(desktop, site_name, album_name)
 os.makedirs(outdir, exist_ok=True)
 
 # ----------------------------
-# Sayfayı yükle ve analiz et
+# Sayfayı yükle, analiz et ve resimleri indir
 # ----------------------------
 DEBUG_HTML = os.path.join(os.getcwd(), "debug_page.html")
 if USE_UC_BROWSER:
@@ -147,4 +153,6 @@ if not links:
     sys.exit(1)
 else:
     print(f"[+] Toplam {len(links)} resim bulundu.")
-
+    download_images(links, outdir)
+    print(f"[i] Tüm resimler indirildi.")
+    input("Çıkmak için Enter'a basın...")
