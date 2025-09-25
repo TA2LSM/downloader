@@ -7,7 +7,7 @@ from defaults import (
   DEBUG, SYSTEM_NAME, ARCH,
   IS_WINDOWS, IS_LINUX, IS_MAC, 
   CHROMIUM_DIR, DRIVER_DIR, DIST_DIR,
-  CHROMIUM_API_VERSIONS, CHROMIUM_API_WITH_DOWNLOADS, CHROMEDRIVER_STORAGE, HEADERS,
+  CHROMIUM_API_VERSIONS, CHROMIUM_API_WITH_DOWNLOADS, CHROMEDRIVER_STORAGE, DEFAULT_HEADER,
   DEF_REQUEST_TIMEOUT, DEFAULT_TIME_BEFORE_FILE_ERASE
 )
 
@@ -17,7 +17,7 @@ from defaults import (
 def get_latest_driver_version():
     """En güncel chromedriver sürümünü döndürür (string) veya None."""
     try:
-        r = requests.get(f"{CHROMEDRIVER_STORAGE}/LATEST_RELEASE", timeout=DEF_REQUEST_TIMEOUT, headers=HEADERS)
+        r = requests.get(f"{CHROMEDRIVER_STORAGE}/LATEST_RELEASE", timeout=DEF_REQUEST_TIMEOUT, headers=DEFAULT_HEADER)
         r.raise_for_status()
         v = r.text.strip()
         if DEBUG: print(f"[DEBUG] ChromeDriver LATEST_RELEASE -> {v}")
@@ -55,7 +55,7 @@ def find_working_driver_url(version, system, machine):
     for url in build_driver_url_candidates(version, system, machine):
         try:
             if DEBUG: print(f"[DEBUG] ChomeDriver HEAD test: {url}")
-            r = requests.head(url, timeout=DEF_REQUEST_TIMEOUT, headers=HEADERS)
+            r = requests.head(url, timeout=DEF_REQUEST_TIMEOUT, headers=DEFAULT_HEADER)
             if r.status_code == 200:
                 if DEBUG: print(f"[DEBUG] ChomeDriver bulundu.")
                 return url
@@ -116,7 +116,7 @@ def try_get_chromium_url_from_known_downloads(version, system, machine):
     döndürür: url veya None
     """
     try:
-        r = requests.get(CHROMIUM_API_WITH_DOWNLOADS, timeout=DEF_REQUEST_TIMEOUT, headers=HEADERS)
+        r = requests.get(CHROMIUM_API_WITH_DOWNLOADS, timeout=DEF_REQUEST_TIMEOUT, headers=DEFAULT_HEADER)
         r.raise_for_status()
         data = r.json()
         # data['versions'] bir liste; en son en yeni olabilir. bulduğumuz version'la aynısı olan entry'yi ararız.
@@ -150,7 +150,7 @@ def get_revision_from_version(version):
     """
     try:
         url = f"https://omahaproxy.appspot.com/deps.json?version={version}"
-        r = requests.get(url, timeout=DEF_REQUEST_TIMEOUT, headers=HEADERS)
+        r = requests.get(url, timeout=DEF_REQUEST_TIMEOUT, headers=DEFAULT_HEADER)
         r.raise_for_status()
         j = r.json()
         # Denenecek olası anahtarlar (bazı endpointlerde farklı isimler oluyor)
@@ -189,7 +189,7 @@ def build_chromium_url_by_revision(revision, system, machine):
         url = f"{base}/{folder}/{revision}/{name}"
         try:
             if DEBUG: print(f"[DEBUG] chromium revision HEAD test: {url}")
-            r = requests.head(url, timeout=DEF_REQUEST_TIMEOUT, headers=HEADERS)
+            r = requests.head(url, timeout=DEF_REQUEST_TIMEOUT, headers=DEFAULT_HEADER)
             if r.status_code == 200:
                 if DEBUG: print(f"[DEBUG] chromium revision url found: {url}")
                 return url
@@ -373,7 +373,13 @@ def ensure_uc_chromium(dist_dir: str):
 
             # Tarayıcıyı çalıştırıp bilgi al
             chrome_options = uc.ChromeOptions()
-            chrome_options.add_argument("--headless=new")  # veya "--headless"
+            chrome_options.add_argument("--headless")
+
+            # if DEBUG:
+            #     chrome_options.add_argument("--headless-new")
+            # else:
+            #     chrome_options.add_argument("--headless")
+                
             driver = uc.Chrome(
                 browser_executable_path=str(chromium_path),
                 options=chrome_options
@@ -414,7 +420,7 @@ def ensure_uc_chromium(dist_dir: str):
     try:
         # API'den son stable sürümü al
         try:
-            r = requests.get(CHROMIUM_API_VERSIONS, headers=HEADERS, timeout=DEF_REQUEST_TIMEOUT)
+            r = requests.get(CHROMIUM_API_VERSIONS, headers=DEFAULT_HEADER, timeout=DEF_REQUEST_TIMEOUT)
             r.raise_for_status()
             data = r.json()
         except Exception as e:
@@ -493,7 +499,7 @@ def detect_chromium_and_driver_versions():
 
     # 1) stable chromium version al
     try:
-        r = requests.get(CHROMIUM_API_VERSIONS, timeout=DEF_REQUEST_TIMEOUT, headers=HEADERS)
+        r = requests.get(CHROMIUM_API_VERSIONS, timeout=DEF_REQUEST_TIMEOUT, headers=DEFAULT_HEADER)
         r.raise_for_status()
         j = r.json()
         # last-known-good-versions.json tipik olarak channels->Stable->version içerir

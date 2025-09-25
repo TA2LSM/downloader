@@ -13,7 +13,7 @@ from selenium.webdriver.common.by import By
 from defaults import (
   DEBUG, SYSTEM, MACHINE,
   IS_WINDOWS, IS_LINUX, IS_MAC,
-  USE_UC_BROWSER, HEADERS,
+  USE_UC_BROWSER, DEFAULT_HEADER,
   DEFAULT_CHUNK_SIZE, DEFAULT_CHROME_DRIVER_MIN_SIZE,
   DEFAULT_CHROMIUM_MIN_SIZE, CHROMIUM_API_WITH_DOWNLOADS,
   DEFAULT_TIME_BEFORE_PAGE_LOAD, DIST_DIR, DRIVER_DIR, CHROMIUM_DIR, TEMP_DIR
@@ -110,11 +110,20 @@ if USE_UC_BROWSER:
     # UC ChromeOptions
     chrome_options = uc.ChromeOptions()
     chrome_options.binary_location = str(chromium_path)
-    chrome_options.add_argument("--headless")
+
+    if DEBUG:
+      chrome_options.add_argument("--headless-new") # tarayıcıyı açar
+    else:
+      chrome_options.add_argument("--headless") # tarayıcıyı açmaz
+
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--log-level=3")
-    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--window-size=800,600")
+    chrome_options.add_argument(f"user-agent={DEFAULT_HEADER['User-Agent']}")
+    chrome_options.add_argument("--ignore-certificate-errors")
+    chrome_options.add_argument("--allow-insecure-localhost")
+    chrome_options.add_argument("--disable-web-security")
 
 else:
     print("[i] Selenium kullanılıyor...")
@@ -129,15 +138,20 @@ else:
 
     chrome_options = Options()
     chrome_options.binary_location = chromium_path
-    # chrome_options.add_argument("--headless-new") # tarayıcıyı açar
-    chrome_options.add_argument("--headless") # tarayıcıyı açmaz
+
+    if DEBUG:
+      chrome_options.add_argument("--headless-new") # tarayıcıyı açar
+    else:
+      chrome_options.add_argument("--headless") # tarayıcıyı açmaz
+
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--log-level=3")
-    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--window-size=800,600")
+    chrome_options.add_argument(f"user-agent={DEFAULT_HEADER['User-Agent']}")
     chrome_options.add_argument("--ignore-certificate-errors")
-    # chrome_options.add_argument("--allow-insecure-localhost")
-    # chrome_options.add_argument("--disable-web-security")
+    chrome_options.add_argument("--allow-insecure-localhost")
+    chrome_options.add_argument("--disable-web-security")
 
 # --- READY to GO! -------------------------
 page_url = input("Sayfa URL'sini girin: ").strip()

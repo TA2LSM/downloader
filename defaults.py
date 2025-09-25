@@ -14,7 +14,7 @@ TEMP_DIR = os.path.join(os.getcwd(), "temp")
 CHROMIUM_DIR = os.path.join(DIST_DIR, "chromium")
 DRIVER_DIR = os.path.join(DIST_DIR, "driver")
 
-HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"}
+DEFAULT_HEADER = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"}
 
 # CHROMIUM_LATEST_API_VERSIONS = "https://omahaproxy.appspot.com/all.json"
 CHROMIUM_API_VERSIONS = "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json"
