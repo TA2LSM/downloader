@@ -149,7 +149,7 @@ else:
     chrome_options.add_argument("--disable-web-security")
 
 # --- READY to GO! -------------------------
-page_url = input("[?] Sayfa URL'sini girin: ").strip()
+page_url = input("[>] Sayfa URL'sini girin: ").strip()
 if not page_url:
     print("URL girilmedi, çıkılıyor.")
     input("Çıkmak için Enter'a basın...")
@@ -178,7 +178,7 @@ if not links:
     print("[!] Hiç link bulunamadı.")
 
     if DEBUG:
-      choice = input("[?] page.html dosyasını elle ekleyip kullanmak etmek ister misiniz? (E/H): ").strip().lower()
+      choice = input("[>] page.html dosyasını elle ekleyip kullanmak etmek ister misiniz? (E/H): ").strip().lower()
 
       if choice in ("e", "evet", "y"):
           links = use_pageHtml_for_links()

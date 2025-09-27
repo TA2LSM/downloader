@@ -36,7 +36,7 @@ else:
     
 DEFAULT_TIME_BEFORE_FILE_ERASE = 2
 
-EXTENSIONS = ["jpg", "jpeg", "png", "webp"]
+EXTENSIONS = ["jpg", "jpeg", "png", "webp", "gif"]
 SEARCH_CLASS_NAMES = ["album-holder", "photo-container"]
 DEFAULT_MAX_SCROLLS = 20
 

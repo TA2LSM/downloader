@@ -182,16 +182,15 @@ def fetch_links(
             print(f"[DEBUG] HTML dosyası kaydedildi: {debug_html_path}")
 
         if not found_element:
-            print("[!] Aranan hiçbir HTML key bulunamadı!")
-            # return
-
+            print("[!] Aranan hiçbir HTML key bulunamadı!")        
+        else:
         # Resim linklerini al
-        print("[2] Linkler ayıklanıyor...")
-        elements = driver.find_elements(By.CSS_SELECTOR, "a[href*='get_image']")
-        links = [el.get_attribute("href") for el in elements]
+          print("[2] Linkler ayıklanıyor...")
+          elements = driver.find_elements(By.CSS_SELECTOR, "a[href*='get_image']")
+          links = [el.get_attribute("href") for el in elements]
 
-        valid_links = filter_links_by_ext(links, EXTENSIONS)
-        return valid_links
+          valid_links = filter_links_by_ext(links)
+          return valid_links
 
     finally:
         if driver:
@@ -204,13 +203,12 @@ def filter_links_by_ext(links: list, exts=None) -> list:
     exts: ['jpg', 'jpeg', 'png', 'webp'] gibi bir liste
     """
     if exts is None:
-        exts = ["jpg", "jpeg", "png", "webp"]
+        exts = EXTENSIONS
 
     allowed = tuple(f".{ext.lower()}" for ext in exts)
     filtered = [url for url in links if url.lower().endswith(allowed)]
     
     return filtered
-
 
 # -------------------------------------------------------------
 def download_links(links: list, outdir: str):
@@ -267,6 +265,6 @@ def use_pageHtml_for_links() -> list[str]:
         input("Çıkmak için Enter'a basın...")
         sys.exit(1)
 
-    valid_links = filter_links_by_ext(links, EXTENSIONS)
-    print(f"[i] {len(valid_links)} link bulundu (page.html üzerinden).")
+    valid_links = filter_links_by_ext(links)
+    print(f"[i] page.html üzerinden toplam {len(valid_links)} link bulundu.")
     return valid_links
