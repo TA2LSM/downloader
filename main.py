@@ -156,16 +156,6 @@ if not page_url:
     sys.exit(1)
 
 # ----------------------------
-# Klasörleri oluştur
-# ----------------------------
-desktop = os.path.join(os.path.expanduser("~"), "Desktop")
-parsed_url = urlparse(page_url)
-site_name = parsed_url.netloc
-album_name = parsed_url.path.rstrip('/').split('/')[-1]
-outdir = os.path.join(desktop, site_name, album_name)
-os.makedirs(outdir, exist_ok=True)
-
-# ----------------------------
 # Sayfayı yükle, analiz et ve resimleri indir
 # ----------------------------
 if USE_UC_BROWSER:
@@ -196,8 +186,9 @@ if not links:
           input("Çıkmak için Enter'a basın...")
           sys.exit(1)
 
+      # Proje dizini -> downloads
       download_links(links, "downloads")
-      
+
       print("[i] Tüm linkler indirildi.")
       input("Çıkmak için Enter'a basın...")
       sys.exit(1)       
@@ -206,6 +197,16 @@ if not links:
        sys.exit(1) 
 else:
     print(f"[i] Toplam {len(links)} link bulundu.")
+
+    # ----------------------------
+    # Klasörleri oluştur
+    # ----------------------------
+    desktop = os.path.join(os.path.expanduser("~"), "Desktop")
+    parsed_url = urlparse(page_url)
+    site_name = parsed_url.netloc
+    album_name = parsed_url.path.rstrip('/').split('/')[-1]
+    outdir = os.path.join(desktop, site_name, album_name)
+    os.makedirs(outdir, exist_ok=True)    
 
     print("[3] Linkler indiriliyor...")
     download_links(links, outdir)

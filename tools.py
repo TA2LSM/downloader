@@ -122,15 +122,31 @@ def fetch_links(
         driver.get(page_url)
              
         # time.sleep(wait_time)
-        searchedClassname = "album-holder"
-        try:
-            # Maksimum DEFAULT_TIME_BEFORE_PAGE_LOAD kadar bekle, element DOM'a eklenene kadar
-            album_holder = WebDriverWait(driver, DEFAULT_TIME_BEFORE_PAGE_LOAD).until(
-                EC.presence_of_element_located((By.CLASS_NAME, searchedClassname))
-            )
-            print(f'[i] Aranan key "{searchedClassname}" bulundu')
-        except Exception as e:
-            print(f'[!] Aranan key "{searchedClassname}" bulunamadı!')
+        # searchedClassname = "album-holder"
+        # try:
+        #     # Maksimum DEFAULT_TIME_BEFORE_PAGE_LOAD kadar bekle, element DOM'a eklenene kadar
+        #     album_holder = WebDriverWait(driver, DEFAULT_TIME_BEFORE_PAGE_LOAD).until(
+        #         EC.presence_of_element_located((By.CLASS_NAME, searchedClassname))
+        #     )
+        #     print(f'[i] Aranan HTML key "{searchedClassname}" bulundu')
+        # except Exception as e:
+        #     print(f'[!] Aranan HTML key "{searchedClassname}" bulunamadı!')
+        #     return
+
+        searched_classes = ["album-holder", "photo-container", "grid-"]
+        found_element = None
+        for classname in searched_classes:
+            try:
+                found_element = WebDriverWait(driver, DEFAULT_TIME_BEFORE_PAGE_LOAD).until(
+                    EC.presence_of_element_located((By.CLASS_NAME, classname))
+                )
+                print(f'[i] Aranan HTML key "{classname}" bulundu')
+                break
+            except Exception:
+                print(f'[!] Aranan HTML key "{classname}" bulunamadı!')        
+        
+        if not found_element:
+            print("[!] Aranan hiçbir HTML key bulunamadı!")
             return
 
         # indirilen HTML dosyasını kaydet
@@ -209,4 +225,3 @@ def use_pageHtml_for_links() -> list[str]:
 
     print(f"[i] {len(links)} link bulundu (page.html üzerinden).")
     return links
-    
