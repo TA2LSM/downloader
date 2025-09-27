@@ -1,22 +1,14 @@
 # TA2LSM / 23.09.2025
-
-# -*- coding: utf-8 -*-
-import os, sys, subprocess, platform, time, zipfile, shutil, urllib.request, requests
+import os, sys
 from urllib.parse import urlparse
 
 import undetected_chromedriver as uc
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
 
 from defaults import (
   DEBUG, SYSTEM, MACHINE,
-  IS_WINDOWS, IS_LINUX, IS_MAC,
   USE_UC_BROWSER, DEFAULT_HEADER,
-  DEFAULT_CHUNK_SIZE, DEFAULT_CHROME_DRIVER_MIN_SIZE,
-  DEFAULT_CHROMIUM_MIN_SIZE, CHROMIUM_API_WITH_DOWNLOADS,
-  DEFAULT_TIME_BEFORE_PAGE_LOAD, DIST_DIR, DRIVER_DIR, CHROMIUM_DIR, TEMP_DIR
+  DEFAULT_TIME_BEFORE_PAGE_LOAD, DIST_DIR, DRIVER_DIR,
   )
 
 if USE_UC_BROWSER:
@@ -30,7 +22,7 @@ from package_installer import (
   ensure_uc_chromium
 )
 
-from tools import download_file, extract_archive, fetch_links, download_links
+from tools import fetch_links, download_links, use_pageHtml_for_links
 
 # ----------------------------
 # Test
@@ -194,8 +186,24 @@ else:
 
 if not links:
     print("[!] Hiç link bulunamadı.")
-    input("Çıkmak için Enter'a basın...")
-    sys.exit(1)
+
+    if DEBUG:
+      choice = input("[?] page.html dosyasını elle ekleyip kullanmak etmek ister misiniz? (E/H): ").strip().lower()
+
+      if choice in ("e", "evet", "y"):
+          links = use_pageHtml_for_links()
+      else:
+          input("Çıkmak için Enter'a basın...")
+          sys.exit(1)
+
+      download_links(links, "downloads")
+      
+      print("[i] Tüm linkler indirildi.")
+      input("Çıkmak için Enter'a basın...")
+      sys.exit(1)       
+    else:
+       input("Çıkmak için Enter'a basın...")
+       sys.exit(1) 
 else:
     print(f"[i] Toplam {len(links)} link bulundu.")
 
@@ -204,3 +212,4 @@ else:
     print("[4] Tüm linkler indirildi.")
 
     input("Çıkmak için Enter'a basın...")
+    sys.exit(1) 

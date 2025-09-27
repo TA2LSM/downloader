@@ -1,4 +1,5 @@
-import os, sys, time, requests, zipfile, tarfile, urllib.request
+import os, sys, requests, zipfile, tarfile, urllib.request
+from bs4 import BeautifulSoup
 
 import undetected_chromedriver as uc
 from selenium import webdriver
@@ -7,7 +8,10 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-from defaults import DEBUG, TEMP_DIR, USE_UC_BROWSER, DEF_DOWNLOAD_TIMEOUT, DEFAULT_TIME_BEFORE_PAGE_LOAD
+from defaults import (
+  DEBUG, TEMP_DIR, DEFAULT_HEADER,
+  USE_UC_BROWSER, DEF_DOWNLOAD_TIMEOUT, DEFAULT_TIME_BEFORE_PAGE_LOAD
+)
 
 if USE_UC_BROWSER:
     import undetected_chromedriver as uc
@@ -156,8 +160,53 @@ def download_links(links: list, outdir: str):
     for idx, url in enumerate(links, start=1):
         filename = os.path.basename(url.rstrip('/'))
         filepath = os.path.join(outdir, filename)
+
         try:
-            urllib.request.urlretrieve(url, filepath)
+            req = urllib.request.Request(url, headers=DEFAULT_HEADER)
+            with urllib.request.urlopen(req) as response, open(filepath, "wb") as out_file:
+                out_file.write(response.read())
+
             print(f"[{idx}/{total}] Kaydedildi: {filename}")
+
         except Exception as e:
             print(f"[{idx}/{total}] HATA: {filename} - {e}")
+
+# -------------------------------------------------------------
+def use_pageHtml_for_links() -> list[str]:
+    """
+    temp/page.html dosyasını parse ederek linkleri döndürür.
+    Eğer dosya yoksa veya link bulunamazsa programı sonlandırır.
+    """
+    DEBUG_HTML = os.path.join(TEMP_DIR, "page.html")
+
+    if not os.path.exists(DEBUG_HTML):
+        print(f"[!] {DEBUG_HTML} bulunamadı.")
+        input("Çıkmak için Enter'a basın...")
+        sys.exit(1)
+
+    print(f"[i] {DEBUG_HTML} dosyası parse ediliyor...")
+
+    with open(DEBUG_HTML, "r", encoding="utf-8") as f:
+        html_content = f.read()
+
+    soup = BeautifulSoup(html_content, "html.parser")
+    # tüm linkler
+    # links = [a.get("href") for a in soup.select("a") if a.get("href")]
+
+    # sadece <div class="images"> içindeki <a> etiketlerini seç
+    container = soup.find("div", class_="images")
+    if not container:
+        print("[!] page.html içinde <div class='images'> bulunamadı.")
+        input("Çıkmak için Enter'a basın...")
+        sys.exit(1)
+
+    links = [a.get("href") for a in container.find_all("a", href=True)]
+
+    if not links:
+        print("[!] page.html içinde hiç link bulunamadı.")
+        input("Çıkmak için Enter'a basın...")
+        sys.exit(1)
+
+    print(f"[i] {len(links)} link bulundu (page.html üzerinden).")
+    return links
+    

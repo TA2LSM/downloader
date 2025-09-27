@@ -8,9 +8,10 @@ DEBUG = True
 
 # BAKILACAK: Derlenmiş exe çalışıyorsa exe'nin dizini, değilse script'in dizini kullanılmalı.
 # BASE_DIR = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.getcwd()
-
 DIST_DIR = os.path.join(os.getcwd(), "dist")
 TEMP_DIR = os.path.join(os.getcwd(), "temp")
+DOWNLOADS_DIR = os.path.join(os.getcwd(), "downloads")
+
 CHROMIUM_DIR = os.path.join(DIST_DIR, "chromium")
 DRIVER_DIR = os.path.join(DIST_DIR, "driver")
 
