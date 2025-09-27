@@ -7,7 +7,7 @@ from selenium.webdriver.chrome.options import Options
 
 from defaults import (
   DEBUG, SYSTEM, MACHINE,
-  USE_UC_BROWSER, DEFAULT_HEADER,
+  USE_UC_BROWSER, DEFAULT_HEADER, SEARCH_CLASS_NAMES,
   DEFAULT_TIME_BEFORE_PAGE_LOAD, DIST_DIR, DRIVER_DIR,
   )
 
@@ -164,6 +164,7 @@ if USE_UC_BROWSER:
         DEFAULT_TIME_BEFORE_PAGE_LOAD,
         chrome_options=chrome_options,
         use_uc=True,
+        search_classes=None
     )
 else:
     links = fetch_links(
@@ -172,6 +173,8 @@ else:
         chrome_options=chrome_options,
         chromedriver_path=chromedriver_path,
         use_uc=False,
+        search_classes=None
+        # search_classes=SEARCH_CLASS_NAMES
     )
 
 if not links:

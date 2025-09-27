@@ -9,7 +9,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 from defaults import (
-  DEBUG, TEMP_DIR, DEFAULT_HEADER, SEARCH_CLASS_NAMES, DEFAULT_MAX_SCROLLS,
+  DEBUG, TEMP_DIR, DEFAULT_HEADER, SEARCH_CLASS_NAMES, DEFAULT_MAX_SCROLLS, DEFAULT_SCROLL_WAIT_TIME,
   USE_UC_BROWSER, DEF_DOWNLOAD_TIMEOUT, DEFAULT_TIME_BEFORE_PAGE_LOAD, EXTENSIONS
 )
 
@@ -96,6 +96,7 @@ def fetch_links(
     chrome_options = None,
     chromedriver_path: str = None,
     use_uc: bool = False,
+    search_classes = None
 ) -> list:
     """
     Sayfadan resim linklerini çeker.
@@ -139,21 +140,21 @@ def fetch_links(
                 sys.exit(1)
 
         # print(f"[1] Sayfa yükleniyor: {page_url}")
-        print(f"[1] Sayfanın tam yüklenmesi için {DEFAULT_TIME_BEFORE_PAGE_LOAD} sn gecikme olacak. Bekleyiniz...")
-
+        print(f"[1] Sayfanın tam yüklenmesi için {wait_time} sn gecikme olacak. Bekleyiniz...")
         driver.get(page_url)
-        if DEBUG:
-          print(f"[i] Sayfa {DEFAULT_MAX_SCROLLS} kere aşağı kaydırılıyor...")
-        else:
-          print("Sayfa aşağı kaydırılıyor...")
 
-        scroll_page(driver, pause_time=2, max_scrolls=DEFAULT_MAX_SCROLLS)
+        if DEBUG:
+          print(f"[i] Sayfa {DEFAULT_MAX_SCROLLS} kere aşağı kaydırılıyor. Bekleyiniz...")
+        else:
+          print("Sayfa aşağı kaydırılıyor. Bekleyiniz...")
+
+        scroll_page(driver, pause_time=DEFAULT_SCROLL_WAIT_TIME, max_scrolls=DEFAULT_MAX_SCROLLS)
              
         # time.sleep(wait_time)
         # searchedClassname = "album-holder"
         # try:
         #     # Maksimum DEFAULT_TIME_BEFORE_PAGE_LOAD kadar bekle, element DOM'a eklenene kadar
-        #     album_holder = WebDriverWait(driver, DEFAULT_TIME_BEFORE_PAGE_LOAD).until(
+        #     album_holder = WebDriverWait(driver, wait_time).until(
         #         EC.presence_of_element_located((By.CLASS_NAME, searchedClassname))
         #     )
         #     print(f'[i] Aranan HTML key "{searchedClassname}" bulundu')
@@ -161,17 +162,31 @@ def fetch_links(
         #     print(f'[!] Aranan HTML key "{searchedClassname}" bulunamadı!')
         #     return
 
-        found_element = None
-        for classname in SEARCH_CLASS_NAMES:
-            try:
-                found_element = WebDriverWait(driver, DEFAULT_TIME_BEFORE_PAGE_LOAD).until(
-                    EC.presence_of_element_located((By.CLASS_NAME, classname))
-                )
-                print(f'[i] Aranan HTML key "{classname}" bulundu')
-                break
-            except Exception:
-                print(f'[!] Aranan HTML key "{classname}" bulunamadı!')        
-        
+        if search_classes:
+          found_element = None
+          for classname in SEARCH_CLASS_NAMES:
+              try:
+                  found_element = WebDriverWait(driver, wait_time).until(
+                      EC.presence_of_element_located((By.CLASS_NAME, classname))
+                  )
+                  print(f'[i] Aranan HTML key "{classname}" bulundu')
+                  break
+              except Exception:
+                  print(f'[!] Aranan HTML key "{classname}" bulunamadı!')  
+
+          if not found_element:
+              print("[!] Aranan hiçbir HTML key bulunamadı!") 
+        else:
+          # search_classes yoksa, sayfanın tamamen yüklenmesini bekle
+          try:
+              WebDriverWait(driver, wait_time).until(
+                  lambda d: d.execute_script("return document.readyState") == "complete"
+              )
+              print("[i] Sayfa tamamen yüklendi")
+          except Exception:
+              print("[!] Sayfa yüklenirken bir sorun oluştu")
+
+
         # indirilen HTML dosyasını kaydet
         if DEBUG:
             os.makedirs(TEMP_DIR, exist_ok=True)
@@ -180,17 +195,20 @@ def fetch_links(
             with open(debug_html_path, "w", encoding="utf-8") as f:
                 f.write(driver.page_source)
             print(f"[DEBUG] HTML dosyası kaydedildi: {debug_html_path}")
+ 
+                 
+        # Tüm linklerini al
+        print("[2] Linkler ayıklanıyor...")
 
-        if not found_element:
-            print("[!] Aranan hiçbir HTML key bulunamadı!")        
-        else:
-        # Resim linklerini al
-          print("[2] Linkler ayıklanıyor...")
-          elements = driver.find_elements(By.CSS_SELECTOR, "a[href*='get_image']")
-          links = [el.get_attribute("href") for el in elements]
+        # elements = driver.find_elements(By.CSS_SELECTOR, "a[href*='get_image']")
+        # links = [el.get_attribute("href") for el in elements]
 
-          valid_links = filter_links_by_ext(links)
-          return valid_links
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+        a_tags = soup.find_all("a")
+        links = [a.get("href") for a in a_tags if a.get("href")]        
+
+        valid_links = filter_links_by_ext(links)
+        return valid_links
 
     finally:
         if driver:
