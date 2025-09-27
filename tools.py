@@ -1,4 +1,4 @@
-import os, sys, requests, zipfile, tarfile, urllib.request
+import os, sys, time, requests, zipfile, tarfile, urllib.request
 from bs4 import BeautifulSoup
 
 import undetected_chromedriver as uc
@@ -9,8 +9,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 from defaults import (
-  DEBUG, TEMP_DIR, DEFAULT_HEADER,
-  USE_UC_BROWSER, DEF_DOWNLOAD_TIMEOUT, DEFAULT_TIME_BEFORE_PAGE_LOAD
+  DEBUG, TEMP_DIR, DEFAULT_HEADER, SEARCH_CLASS_NAMES, DEFAULT_MAX_SCROLLS,
+  USE_UC_BROWSER, DEF_DOWNLOAD_TIMEOUT, DEFAULT_TIME_BEFORE_PAGE_LOAD, EXTENSIONS
 )
 
 if USE_UC_BROWSER:
@@ -69,6 +69,27 @@ def download_file(url, filename, min_size=1024*1024):
         return False
 
 # -------------------------------------------------------------
+def scroll_page(driver, pause_time=2, max_scrolls=10):
+    """
+    Sayfayı aşağı kaydırır, lazy load içerikleri yükler.
+    pause_time: Her kaydırma sonrası bekleme süresi
+    max_scrolls: En fazla kaç kez kaydırılacak
+    """
+    last_height = driver.execute_script("return document.body.scrollHeight")
+
+    for i in range(max_scrolls):
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(pause_time)
+
+        new_height = driver.execute_script("return document.body.scrollHeight")
+        if new_height == last_height:
+            print("[i] Sayfanın sonuna ulaşıldı.")
+            break
+        last_height = new_height
+
+    print("[i] Kaydırma işlemi tamamlandı.")
+
+# -------------------------------------------------------------
 def fetch_links(
     page_url: str,
     wait_time: int = 5,
@@ -119,7 +140,14 @@ def fetch_links(
 
         # print(f"[1] Sayfa yükleniyor: {page_url}")
         print(f"[1] Sayfanın tam yüklenmesi için {DEFAULT_TIME_BEFORE_PAGE_LOAD} sn gecikme olacak. Bekleyiniz...")
+
         driver.get(page_url)
+        if DEBUG:
+          print(f"[i] Sayfa {DEFAULT_MAX_SCROLLS} kere aşağı kaydırılıyor...")
+        else:
+          print("Sayfa aşağı kaydırılıyor...")
+
+        scroll_page(driver, pause_time=2, max_scrolls=DEFAULT_MAX_SCROLLS)
              
         # time.sleep(wait_time)
         # searchedClassname = "album-holder"
@@ -133,9 +161,8 @@ def fetch_links(
         #     print(f'[!] Aranan HTML key "{searchedClassname}" bulunamadı!')
         #     return
 
-        searched_classes = ["album-holder", "photo-container", "grid-"]
         found_element = None
-        for classname in searched_classes:
+        for classname in SEARCH_CLASS_NAMES:
             try:
                 found_element = WebDriverWait(driver, DEFAULT_TIME_BEFORE_PAGE_LOAD).until(
                     EC.presence_of_element_located((By.CLASS_NAME, classname))
@@ -145,28 +172,45 @@ def fetch_links(
             except Exception:
                 print(f'[!] Aranan HTML key "{classname}" bulunamadı!')        
         
-        if not found_element:
-            print("[!] Aranan hiçbir HTML key bulunamadı!")
-            return
-
         # indirilen HTML dosyasını kaydet
         if DEBUG:
             os.makedirs(TEMP_DIR, exist_ok=True)
             debug_html_path = os.path.join(TEMP_DIR, "page.html")
+
             with open(debug_html_path, "w", encoding="utf-8") as f:
                 f.write(driver.page_source)
             print(f"[DEBUG] HTML dosyası kaydedildi: {debug_html_path}")
+
+        if not found_element:
+            print("[!] Aranan hiçbir HTML key bulunamadı!")
+            # return
 
         # Resim linklerini al
         print("[2] Linkler ayıklanıyor...")
         elements = driver.find_elements(By.CSS_SELECTOR, "a[href*='get_image']")
         links = [el.get_attribute("href") for el in elements]
 
-        return links
+        valid_links = filter_links_by_ext(links, EXTENSIONS)
+        return valid_links
 
     finally:
         if driver:
             driver.quit()
+
+# -------------------------------------------------------------
+def filter_links_by_ext(links: list, exts=None) -> list:
+    """
+    Belirli uzantılara göre linkleri filtreler.
+    exts: ['jpg', 'jpeg', 'png', 'webp'] gibi bir liste
+    """
+    if exts is None:
+        exts = ["jpg", "jpeg", "png", "webp"]
+
+    allowed = tuple(f".{ext.lower()}" for ext in exts)
+    filtered = [url for url in links if url.lower().endswith(allowed)]
+    
+    return filtered
+
 
 # -------------------------------------------------------------
 def download_links(links: list, outdir: str):
@@ -207,21 +251,22 @@ def use_pageHtml_for_links() -> list[str]:
 
     soup = BeautifulSoup(html_content, "html.parser")
     # tüm linkler
-    # links = [a.get("href") for a in soup.select("a") if a.get("href")]
+    links = [a.get("href") for a in soup.select("a") if a.get("href")]
 
     # sadece <div class="images"> içindeki <a> etiketlerini seç
-    container = soup.find("div", class_="images")
-    if not container:
-        print("[!] page.html içinde <div class='images'> bulunamadı.")
-        input("Çıkmak için Enter'a basın...")
-        sys.exit(1)
+    # container = soup.find("div", class_="images")
+    # if not container:
+    #     print("[!] page.html içinde <div class='images'> bulunamadı.")
+    #     input("Çıkmak için Enter'a basın...")
+    #     sys.exit(1)
 
-    links = [a.get("href") for a in container.find_all("a", href=True)]
+    # links = [a.get("href") for a in container.find_all("a", href=True)]
 
     if not links:
         print("[!] page.html içinde hiç link bulunamadı.")
         input("Çıkmak için Enter'a basın...")
         sys.exit(1)
 
-    print(f"[i] {len(links)} link bulundu (page.html üzerinden).")
-    return links
+    valid_links = filter_links_by_ext(links, EXTENSIONS)
+    print(f"[i] {len(valid_links)} link bulundu (page.html üzerinden).")
+    return valid_links

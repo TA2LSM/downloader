@@ -149,7 +149,7 @@ else:
     chrome_options.add_argument("--disable-web-security")
 
 # --- READY to GO! -------------------------
-page_url = input("Sayfa URL'sini girin: ").strip()
+page_url = input("[?] Sayfa URL'sini girin: ").strip()
 if not page_url:
     print("URL girilmedi, çıkılıyor.")
     input("Çıkmak için Enter'a basın...")

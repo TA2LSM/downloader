@@ -30,11 +30,15 @@ DEF_REQUEST_TIMEOUT = 15
 DEF_DOWNLOAD_TIMEOUT = 30
 
 if DEBUG: 
-  DEFAULT_TIME_BEFORE_PAGE_LOAD = 90
+  DEFAULT_TIME_BEFORE_PAGE_LOAD = 20
 else:
   DEFAULT_TIME_BEFORE_PAGE_LOAD = 8
     
 DEFAULT_TIME_BEFORE_FILE_ERASE = 2
+
+EXTENSIONS = ["jpg", "jpeg", "png", "webp"]
+SEARCH_CLASS_NAMES = ["album-holder", "photo-container"]
+DEFAULT_MAX_SCROLLS = 20
 
 # Sistem bilgileri
 _system = sys.platform
